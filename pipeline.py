@@ -2,8 +2,8 @@
 # CLASS 4: PIPELINE ETL
 # ===============================
 
-from transformer import Transformer
 from extractor import Extractor
+from transformer import Transformer
 from loader import Loader
 
 class ETLPipeline:
@@ -24,13 +24,13 @@ class ETLPipeline:
         # TRANSFORM
         transformer = Transformer(users)
         stats = transformer.generate_stats()
-        df = transformer.get_dataframe()
+        users_processed = transformer.get_users()
 
         # LOAD
         loader = Loader(self.output_dir)
-        loader.save_to_files(df, stats)
+        loader.save_to_files(users_processed, stats)
 
-        print("\nProcess exit successfully.")
-        print("Sum up:")
+        print("\nProcess finished successfully.")
+        print("Summary:")
         for k, v in stats.items():
             print(f"  {k}: {v}")

@@ -1,8 +1,0 @@
-{
-    "total_usuarios": 100,
-    "promedio_edad": 52.99,
-    "edad_minima": 24,
-    "edad_maxima": 80,
-    "genero_mas_frecuente": "male",
-    "paises_distintos": 21
-}

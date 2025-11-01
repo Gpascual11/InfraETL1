@@ -2,27 +2,32 @@
 # CLASS 2: TRANSFORMER
 # ===============================
 
-import pandas as pd
+import statistics
+from collections import Counter
 
 class Transformer:
     """Class responsible for transforming user data and generating statistics"""
 
     def __init__(self, users: list):
         self.users = users
-        self.df = pd.json_normalize(users)
 
     def generate_stats(self) -> dict:
-        print(" Generating statistics...")
+        print("Generating statistics...")
+
+        ages = [user["dob"]["age"] for user in self.users]
+        genders = [user["gender"] for user in self.users]
+        countries = [user["location"]["country"] for user in self.users]
+
         stats = {
-            "total_usuarios": len(self.df),
-            "promedio_edad": round(self.df["dob.age"].mean(), 2),
-            "edad_minima": int(self.df["dob.age"].min()),
-            "edad_maxima": int(self.df["dob.age"].max()),
-            "genero_mas_frecuente": self.df["gender"].mode()[0],
-            "paises_distintos": self.df["location.country"].nunique(),
+            "total_users": len(self.users),
+            "average_age": round(statistics.mean(ages), 2) if ages else 0,
+            "minimum_age": min(ages) if ages else 0,
+            "maximum_age": max(ages) if ages else 0,
+            "most_frequent_gender": Counter(genders).most_common(1)[0][0] if genders else None,
+            "different_countries": len(set(countries)),
         }
         return stats
 
-# Using type hinting for better clarity
-    def get_dataframe(self) -> pd.DataFrame:
-        return self.df
+    def get_users(self) -> list:
+        """Return the processed user list (ready to save)."""
+        return self.users
