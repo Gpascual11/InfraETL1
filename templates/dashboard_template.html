@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ETL Dashboard - Password Strength</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #f4f7f9;
+            margin: 0;
+            padding: 40px;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #222;
+        }
+
+        /* Tabs */
+        .tab-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #555;
+            transition: all 0.3s;
+        }
+        .tab.active {
+            color: #0078d4;
+            border-bottom: 3px solid #0078d4;
+        }
+
+        /* Content sections */
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        .stat-box {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .bar-container {
+            background: #e0e0e0;
+            border-radius: 25px;
+            overflow: hidden;
+            height: 30px;
+            width: 100%;
+            margin-top: 15px;
+        }
+        .bar-strong {
+            background: #4caf50;
+            height: 100%;
+            color: white;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+        }
+        .bar-weak {
+            background: #f44336;
+            height: 100%;
+            color: white;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+        }
+
+        /* DB Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        th {
+            background-color: #0078d4;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.9em;
+            color: #777;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Password Strength Dashboard</h1>
+
+        <div class="tab-container">
+            <button class="tab active" onclick="showTab('stats')">📊 Statistics</button>
+            <button class="tab" onclick="showTab('db')">🗄️ Database</button>
+        </div>
+
+        <!-- Statistics Tab -->
+        <div id="stats" class="tab-content active">
+            <div class="stat-box">
+                <p><strong>Total Users:</strong> {{total}}</p>
+                <p><strong>Strong Passwords:</strong> {{strong}} ({{strong_percent}}%)</p>
+                <p><strong>Weak Passwords:</strong> {{weak}} ({{weak_percent}}%)</p>
+            </div>
+            <div class="bar-container">
+                <div class="bar-strong" style="width: {{strong_percent}}%;">Strong</div>
+            </div>
+            <div class="bar-container" style="margin-top:10px;">
+                <div class="bar-weak" style="width: {{weak_percent}}%;">Weak</div>
+            </div>
+        </div>
+
+        <!-- Database Tab -->
+        <div id="db" class="tab-content">
+            <h2 style="text-align:center;">📁 User Database</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>User ID</th>
+                        <th>Username</th>
+                        <th>Password Strength</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.strength }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer>
+        ETL System © 2025 – Emilio Delgado, Marc Dulcet, Marc Tomàs and Gerard Pascual.
+    </footer>
+
+    <script>
+        function showTab(tabId) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            // Remove active class from tabs
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            // Activate clicked tab
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

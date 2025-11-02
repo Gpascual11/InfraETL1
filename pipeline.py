@@ -6,6 +6,7 @@ from extractor import Extractor
 from transformer import Transformer
 from loader import Loader
 
+
 class ETLPipeline:
     """Coordinates the ETL process: Extract, Transform, Load"""
 
@@ -15,22 +16,34 @@ class ETLPipeline:
         self.output_dir = output_dir
 
     def run(self):
-        print("Starting ETL process...\n")
+        print("=================================")
+        print("        ETL SYSTEM START         ")
+        print("=================================")
+        print(f"Extracting {self.n_users} users from API...")
+        print("---------------------------------")
 
-        # EXTRACT
+        # ========== EXTRACT ==========
         extractor = Extractor(self.api_url, self.n_users)
         users = extractor.extract()
 
-        # TRANSFORM
+        # ========== TRANSFORM ==========
         transformer = Transformer(users)
+        transformer.validate_data()  # detect anomalies etc.
         stats = transformer.generate_stats()
         users_processed = transformer.get_users()
 
-        # LOAD
+        # Add password strength stats
+        password_stats = transformer.calculate_password_strength_stats()
+        stats["password_strength"] = password_stats
+
+        # ========== LOAD ==========
         loader = Loader(self.output_dir)
         loader.save_to_files(users_processed, stats)
 
-        print("\nProcess finished successfully.")
-        print("Summary:")
-        for k, v in stats.items():
-            print(f"  {k}: {v}")
+        # ========== SUMMARY ==========
+        print("\n=================================")
+        print("     ETL PROCESS COMPLETED ✅     ")
+        print("=================================")
+        print(f"Total valid users saved: {len(users_processed)}")
+        print(f"Output files stored in '{self.output_dir}' folder.")
+        print("Dashboard has been automatically opened in your browser.\n")

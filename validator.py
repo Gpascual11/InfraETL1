@@ -3,7 +3,6 @@
 # ===============================
 
 import unicodedata
-import string
 import re
 
 
@@ -38,14 +37,6 @@ class Validator:
     # -------------------------------
     # CHARACTER VALIDATION
     # -------------------------------
-
-    import re
-    import unicodedata
-    import string
-
-    import re
-    import unicodedata
-    import string
 
     @staticmethod
     def contains_strange_characters(text: str) -> bool:
