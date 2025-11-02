@@ -1,19 +1,21 @@
-# ===============================
-# CLASS 4: PIPELINE ETL
-# ===============================
-
 from extractor import Extractor
 from transformer import Transformer
 from loader import Loader
+from datetime import datetime
+from pathlib import Path
 
 
 class ETLPipeline:
     """Coordinates the ETL process: Extract, Transform, Load"""
 
-    def __init__(self, api_url: str, n_users: int, output_dir: str = "output"):
+    def __init__(self, api_url: str, n_users: int, base_output_dir: str = "output"):
         self.api_url = api_url
         self.n_users = n_users
-        self.output_dir = output_dir
+        self.base_output_dir = Path(base_output_dir)
+        self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.run_dir = self.base_output_dir / self.timestamp
+        self.run_dir.mkdir(parents=True, exist_ok=True)
+
 
     def run(self):
         print("=================================")
@@ -22,13 +24,14 @@ class ETLPipeline:
         print(f"Extracting {self.n_users} users from API...")
         print("---------------------------------")
 
+
         # ========== EXTRACT ==========
-        extractor = Extractor(self.api_url, self.n_users)
+        extractor = Extractor(self.api_url, self.n_users, output_dir=self.run_dir)
         users = extractor.extract()
 
         # ========== TRANSFORM ==========
         transformer = Transformer(users)
-        transformer.validate_data()  # detect anomalies etc.
+        transformer.validate_data()
         stats = transformer.generate_stats()
         users_processed = transformer.get_users()
 
@@ -37,7 +40,7 @@ class ETLPipeline:
         stats["password_strength"] = password_stats
 
         # ========== LOAD ==========
-        loader = Loader(self.output_dir)
+        loader = Loader(output_dir=self.run_dir)
         loader.save_to_files(users_processed, stats)
 
         # ========== SUMMARY ==========
@@ -45,5 +48,5 @@ class ETLPipeline:
         print("     ETL PROCESS COMPLETED ✅     ")
         print("=================================")
         print(f"Total valid users saved: {len(users_processed)}")
-        print(f"Output files stored in '{self.output_dir}' folder.")
+        print(f"Output folder: {self.run_dir.resolve()}")
         print("Dashboard has been automatically opened in your browser.\n")

@@ -19,7 +19,7 @@ def main():
         n_users = 10000
 
     # Run the unified pipeline
-    pipeline = ETLPipeline(api_url=API_URL, n_users=n_users, output_dir="output")
+    pipeline = ETLPipeline(api_url=API_URL, n_users=n_users)
     pipeline.run()
 
 if __name__ == "__main__":

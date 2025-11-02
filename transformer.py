@@ -45,7 +45,7 @@ class Transformer:
 
             # Step 2: Check each text field for unwanted characters
             has_strange = False
-            for key, value in self._iterate_fields(user):
+            for key, value in Validator.iterate_fields(user):
                 if isinstance(value, str) and Validator.contains_strange_characters(value):
                     print(f"Strange character detected in user #{idx}, field '{key}': {value}")
                     has_strange = True
@@ -61,32 +61,6 @@ class Transformer:
         self.users = valid_users
 
         print(f"Validation complete. {len(self.invalid_users)} records flagged for review.")
-
-    # -------------------------------
-    # HELPER: FIELD ITERATOR
-    # -------------------------------
-
-    def _iterate_fields(self, data, parent_key=""):
-        """
-        Recursively iterate through all nested fields of a dictionary or list.
-        Produces a (field_path, value) tuple for each terminal field.
-        Example:
-            input: {"location": {"country": "Germany"}}
-            yields: ("location.country", "Germany")
-        """
-        if isinstance(data, dict):
-            # Dive into nested dictionaries
-            for k, v in data.items():
-                full_key = f"{parent_key}.{k}" if parent_key else k
-                yield from self._iterate_fields(v, full_key)
-        elif isinstance(data, list):
-            # Enumerate list items (e.g., address lines, phone numbers)
-            for i, item in enumerate(data):
-                full_key = f"{parent_key}[{i}]"
-                yield from self._iterate_fields(item, full_key)
-        else:
-            # Base case: reached a single scalar field
-            yield (parent_key, data)
 
     # -------------------------------
     # STATISTICS GENERATION
