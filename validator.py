@@ -4,75 +4,102 @@
 
 import unicodedata
 import string
+import re
 
 
 class Validator:
     """
     Utility class responsible for checking data quality:
     - Detecting null or empty values
-    - Detecting non-ASCII or invisible characters
+    - Detecting truly invalid (non-Latin/invisible) characters
+    - Allowing valid email, URL, timezone, and encoded strings
     """
 
     def __init__(self):
-        self.invalid_users = []  # Keep invalid or suspicious users
+        self.invalid_users = []
 
     # -------------------------------
     # BASIC VALIDATION
     # -------------------------------
 
     @staticmethod
-    def _is_valid_value(value) -> bool:
-        """
-        Recursively checks whether a given value is valid.
-        Valid means: not None, not empty, not a blank string.
-        Works for nested dicts and lists.
-        """
+    def is_valid_value(value) -> bool:
+        """Recursively check if a value is not null or empty."""
         if value is None:
             return False
         if isinstance(value, str) and value.strip() == "":
             return False
         if isinstance(value, dict):
-            return all(Validator._is_valid_value(v) for v in value.values())
+            return all(Validator.is_valid_value(v) for v in value.values())
         if isinstance(value, list):
-            return all(Validator._is_valid_value(v) for v in value)
+            return all(Validator.is_valid_value(v) for v in value)
         return True
 
     # -------------------------------
     # CHARACTER VALIDATION
     # -------------------------------
 
+    import re
+    import unicodedata
+    import string
+
+    import re
+    import unicodedata
+    import string
+
     @staticmethod
     def contains_strange_characters(text: str) -> bool:
         """
-        Checks if the given string contains any non-ASCII
-        or invisible Unicode characters.
+        Detect if a string contains unusual or invalid characters.
+
+        Valid characters include:
+        - Printable ASCII
+        - Latin letters (with accents)
+        - Common punctuation (including en/em dash)
+        - URLs, emails, timezone offsets, HTML entities
         """
+
         if not isinstance(text, str):
             return False
 
-        for char in text:
-            # Skip normal printable ASCII characters
-            if char in string.printable:
-                continue
+        # Normalize composed characters (e.g., é → é)
+        normalized = unicodedata.normalize("NFKC", text)
 
-            # Detect non-printable or control Unicode categories
-            category = unicodedata.category(char)
-            if category.startswith(("C", "Z")):  # C = control chars, Z = separators
+        # Whitelist of known valid structured formats
+        if (
+                re.fullmatch(r"&[a-zA-Z0-9#]+;", normalized)  # HTML entities
+                or re.fullmatch(r"^[+-]\d{1,2}:\d{2}$", normalized)  # Timezone offsets
+                or re.fullmatch(r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$", normalized)  # Emails
+                or re.fullmatch(r"^https?://[^\s]+$", normalized)  # URLs
+        ):
+            return False
+
+        # Allow normal punctuation + Latin-1 Supplement + en/em dash
+        allowed_pattern = re.compile(
+            r"^[\w\s'’‘\-–—.,;:/()@+À-ÿ&]+$",  # includes – (U+2013) and — (U+2014)
+            re.UNICODE,
+        )
+
+        if allowed_pattern.fullmatch(normalized):
+            return False  # All characters are valid
+
+        # Check for invisible/control Unicode characters
+        for ch in normalized:
+            category = unicodedata.category(ch)
+            # 'C' = control, 'Zs' = non-breaking/invisible spaces
+            if category.startswith("C") or category == "Zs":
                 return True
 
-            # Detect non-ASCII characters
-            if ord(char) > 127:
+        # Reject characters outside the Latin Extended-A/B range
+        for ch in normalized:
+            if ord(ch) > 591:  # covers most Latin-based languages
                 return True
 
         return False
 
     @staticmethod
     def _iterate_fields(data, parent_key=""):
-        """
-        Recursively iterate through all nested fields of a dictionary
-        and yield (key_path, value) pairs.
-        Example: ('location.city', 'Paris')
-        """
+        """Yield (key_path, value) pairs from nested dicts/lists."""
         if isinstance(data, dict):
             for key, value in data.items():
                 new_key = f"{parent_key}.{key}" if parent_key else key
@@ -93,19 +120,18 @@ class Validator:
         Validate and clean a batch of user records.
         - Remove users with null/empty fields.
         - Print users with strange characters.
-        - Keep invalid users in memory for review.
+        - Keep invalid users separately.
         """
         valid_users = []
         strange_count = 0
         self.invalid_users = []
 
         for i, user in enumerate(users):
-            # Check for missing or invalid values
-            if not self._is_valid_value(user):
+            if not self.is_valid_value(user):
                 self.invalid_users.append(user)
                 continue
 
-            # Detect strange characters
+            # Detect truly strange (non-Latin/invisible) characters
             has_strange = False
             for key, value in self._iterate_fields(user):
                 if isinstance(value, str) and Validator.contains_strange_characters(value):
