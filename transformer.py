@@ -8,6 +8,8 @@ from collections import Counter, defaultdict
 from CSVHelper import CSVHelper
 from validator import Validator
 from pathlib import Path
+import math
+import string
 
 
 class Transformer:
@@ -119,16 +121,47 @@ class Transformer:
     # -------------------------------
     # PASSWORD STRENGTH
     # -------------------------------
-    def calculate_password_strength_stats(self):
-        """Compute strong vs weak passwords metrics."""
+    import math
+    import string
+
+    def calculate_password_strength_stats(self, entropy_threshold=50):
+        """Compute strong vs weak passwords metrics using entropy formula E = log2(R^L)."""
         total = len(self.users)
         if total == 0:
             return {"strong": 0, "weak": 0, "percent_strong": 0.0, "total_users": 0}
 
-        strong = sum(1 for user in self.users if len(user.get("login", {}).get("password", "")) > 7)
-        percent_strong = round((strong / total) * 100, 2) if total else 0.0
+        def estimate_entropy(password):
+            """Estimate entropy based on character set size R and length L."""
+            if not password:
+                return 0.0
 
-        return {"strong": strong, "weak": total - strong, "percent_strong": percent_strong, "total_users": total}
+            R = 0
+            if any(c.islower() for c in password):
+                R += 26
+            if any(c.isupper() for c in password):
+                R += 26
+            if any(c.isdigit() for c in password):
+                R += 10
+            if any(c in string.punctuation for c in password):
+                R += len(string.punctuation)
+            if any(c.isspace() for c in password):
+                R += 1  # space counts as a possible symbol
+
+            L = len(password)
+            return L * math.log2(R) if R > 0 else 0.0
+
+        strong = sum(
+            1 for user in self.users
+            if estimate_entropy(user.get("login", {}).get("password", "")) >= entropy_threshold
+        )
+        percent_strong = round((strong / total) * 100, 2)
+
+        return {
+            "strong": strong,
+            "weak": total - strong,
+            "percent_strong": percent_strong,
+            "total_users": total
+        }
 
     # -------------------------------
     # PASSWORD COMPLEXITY
@@ -136,7 +169,7 @@ class Transformer:
     @staticmethod
     def calculate_password_complexity(passwords):
         """Classify passwords: lowercase only, numbers only, letters+numbers, includes symbols."""
-        counts = defaultdict(int)
+        counts = defaultdict(float)
         for p in passwords:
             if not p:
                 continue

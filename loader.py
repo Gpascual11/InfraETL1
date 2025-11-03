@@ -11,17 +11,15 @@ from CSVHelper import CSVHelper
 class Loader:
     """Class responsible for saving transformed data and statistics to files"""
 
-
     def __init__(self, source, output_dir="output", template_path="templates/dashboard_template.html"):
         self.run_dir = Path(output_dir)
-        self.run_dir.mkdir(parents=True, exist_ok=True)  # asegurarse que exista
+        self.run_dir.mkdir(parents=True, exist_ok=True)
         self.template_path = Path(template_path)
-        self.timestamp = self.run_dir.name  # extrae timestamp de la carpeta
-        self.users = []  # inicializar la lista
-        self.load_users(source)  # ahora source está definido
+        self.timestamp = self.run_dir.name
+        self.users = []
+        self.load_users(source)
 
     def load_users(self, source):
-        # carga usuarios desde CSV o lista
         if isinstance(source, list):
             self.users = source
         else:
@@ -45,7 +43,7 @@ class Loader:
 
         # Load template
         if not self.template_path.exists():
-            print("⚠️ Dashboard template not found — skipping HTML generation.")
+            print("Dashboard template not found — skipping HTML generation.")
             return
         template = self.template_path.read_text(encoding="utf-8")
 
@@ -115,10 +113,8 @@ class Loader:
             .replace("{{age_decade_counts}}", json.dumps(age_decade_counts)) \
             .replace("{{age_decade_colors}}", json.dumps(age_decade_colors)) \
             .replace("{{user_rows}}", user_rows) \
-            .replace("{{password_length_keys}}",
-                     json.dumps(list(stats['password_length_stats']['distribution'].keys()))) \
-            .replace("{{password_length_values}}",
-                     json.dumps(list(stats['password_length_stats']['distribution'].values()))) \
+            .replace("{{password_length_keys}}", json.dumps(list(stats['password_length_stats']['distribution'].keys()))) \
+            .replace("{{password_length_values}}", json.dumps(list(stats['password_length_stats']['distribution'].values()))) \
             .replace("{{lowercase_only}}", str(stats['password_complexity_stats'].get('lowercase_only', 0))) \
             .replace("{{numbers_only}}", str(stats['password_complexity_stats'].get('numbers_only', 0))) \
             .replace("{{letters_and_numbers}}", str(stats['password_complexity_stats'].get('letters_and_numbers', 0))) \
@@ -138,7 +134,7 @@ class Loader:
             f.write(html)
 
         webbrowser.open_new_tab(dashboard_path.resolve().as_uri())
-        print("✅ Dashboard generated and opened in browser.")
-        print(f"✅ Stats saved: {stats_path}")
+        print("Dashboard generated and opened in browser.")
+        print(f"Stats saved: {stats_path}")
 
 

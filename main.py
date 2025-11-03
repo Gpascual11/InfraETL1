@@ -1,7 +1,7 @@
 from pipeline import ETLPipeline
 
 def main():
-    API_URL = "https://randomuser.me/api/"
+    api_url = "https://randomuser.me/api/"
     print("1. Choose number of users manually")
     print("2. Use default: 10,000 EU/LATAM users")
 
@@ -19,7 +19,7 @@ def main():
         n_users = 10000
 
     # Run the unified pipeline
-    pipeline = ETLPipeline(api_url=API_URL, n_users=n_users)
+    pipeline = ETLPipeline(api_url=api_url, n_users=n_users)
     pipeline.run()
 
 if __name__ == "__main__":

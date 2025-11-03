@@ -34,7 +34,6 @@ class Validator:
 
         normalized = unicodedata.normalize("NFKC", text)
 
-        # Allow emails, URLs, HTML entities
         if (
             re.fullmatch(r"&[a-zA-Z0-9#]+;", normalized)
             or re.fullmatch(r"^[+-]\d{1,2}:\d{2}$", normalized)

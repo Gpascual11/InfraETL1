@@ -45,7 +45,7 @@ class ETLPipeline:
 
         # ========== SUMMARY ==========
         print("\n=================================")
-        print("     ETL PROCESS COMPLETED ✅     ")
+        print("     ETL PROCESS COMPLETED       ")
         print("=================================")
         print(f"Total valid users saved: {len(users_processed)}")
         print(f"Output folder: {self.run_dir.resolve()}")

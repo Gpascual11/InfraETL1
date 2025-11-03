@@ -5,7 +5,6 @@
 import requests
 import time
 import sys
-import csv
 from pathlib import Path
 from validator import Validator
 from CSVHelper import CSVHelper
@@ -42,7 +41,6 @@ class Extractor:
         self.nationalities = self.EU_NATS + self.LATAM_NATS
         self.run_dir = Path(output_dir) if output_dir else Path("output")
         self.run_dir.mkdir(parents=True, exist_ok=True)
-
 
     # -------------------------------
     # INTERNAL METHODS
@@ -98,7 +96,7 @@ class Extractor:
     # -------------------------------
 
     def extract(self) -> list:
-        print(f"\n🚀 Starting extraction of {self.total_users} users...\n")
+        print(f"\nStarting extraction of {self.total_users} users...\n")
 
         while len(self.all_users) < self.total_users:
             valid, invalid = self._fetch_batch()
@@ -111,7 +109,7 @@ class Extractor:
             _print_progress(len(self.all_users), self.total_users)
             time.sleep(1)
 
-        print("\n\n✅ Extraction completed.")
+        print("\n\nExtraction completed.")
         print(f"→ Valid users: {len(self.all_users)}")
         print(f"→ Invalid users: {len(self.invalid_users)}")
 
