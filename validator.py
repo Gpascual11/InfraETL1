@@ -1,7 +1,6 @@
 import unicodedata
 import re
 
-
 class Validator:
     """Utility class for validating data and helper methods for ETL."""
 
@@ -62,21 +61,6 @@ class Validator:
         return False
 
     # -------------------------------
-    # NESTED DICT FLATTEN
-    # -------------------------------
-    @staticmethod
-    def flatten_dict(d, parent_key="", sep="."):
-        """Flatten nested dictionaries for CSV writing."""
-        items = []
-        for k, v in d.items():
-            new_key = f"{parent_key}{sep}{k}" if parent_key else k
-            if isinstance(v, dict):
-                items.extend(Validator.flatten_dict(v, new_key, sep=sep).items())
-            else:
-                items.append((new_key, v))
-        return dict(items)
-
-    # -------------------------------
     # CSV HELPERS
     # -------------------------------
     @staticmethod
@@ -100,14 +84,4 @@ class Validator:
         else:
             yield parent_key, data
 
-    def validate_batch(self, users: list) -> tuple:
-        """Return two lists: valid (non-null) and invalid (null/empty)."""
-        valid, invalid = [], []
 
-        for user in users:
-            if self.is_valid_value(user):
-                valid.append(user)
-            else:
-                invalid.append(user)
-
-        return valid, invalid

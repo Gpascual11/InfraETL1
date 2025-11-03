@@ -12,7 +12,7 @@ class ETLPipeline:
         self.api_url = api_url
         self.n_users = n_users
         self.base_output_dir = Path(base_output_dir)
-        self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.timestamp = datetime.now().strftime("%Y_%m_%d|%H:%M:%S:")
         self.run_dir = self.base_output_dir / self.timestamp
         self.run_dir.mkdir(parents=True, exist_ok=True)
 
@@ -40,8 +40,8 @@ class ETLPipeline:
         stats["password_strength"] = password_stats
 
         # ========== LOAD ==========
-        loader = Loader(output_dir=self.run_dir)
-        loader.save_to_files(users_processed, stats)
+        loader = Loader(source=users_processed, output_dir=self.run_dir)
+        loader.save_stats_and_dashboard(users_processed, stats)
 
         # ========== SUMMARY ==========
         print("\n=================================")

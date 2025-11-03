@@ -8,6 +8,7 @@ import sys
 import csv
 from pathlib import Path
 from validator import Validator
+from CSVHelper import CSVHelper
 
 
 def _print_progress(current: int, total: int, bar_length: int = 40):
@@ -31,7 +32,7 @@ class Extractor:
     EU_NATS = ["CH", "DE", "DK", "ES", "FI", "FR", "GB", "IE", "NL", "NO", "TR", "RS", "UA"]
     LATAM_NATS = ["BR", "MX"]
 
-    def __init__(self, api_url: str, total_users: int = 1000, batch_size: int = 500, output_dir: Path = None):
+    def __init__(self, api_url: str, total_users: int = 1000, batch_size: int = 500, output_dir=None):
         self.api_url = api_url.rstrip("?&")
         self.total_users = total_users
         self.batch_size = batch_size
@@ -39,7 +40,8 @@ class Extractor:
         self.invalid_users = []
         self.validator = Validator()
         self.nationalities = self.EU_NATS + self.LATAM_NATS
-        self.output_dir = Path(output_dir) if output_dir else Path("output")
+        self.run_dir = Path(output_dir) if output_dir else Path("output")
+        self.run_dir.mkdir(parents=True, exist_ok=True)
 
 
     # -------------------------------
@@ -91,30 +93,6 @@ class Extractor:
             time.sleep(5)
             return [], []
 
-    def _save_to_csv(self, valid_users, invalid_users):
-
-        valid_path = self.output_dir / "valid_users.csv"
-        invalid_path = self.output_dir / "invalid_users.csv"
-
-        def write_csv(path, users):
-            if not users:
-                return
-            flat_users = [Validator.flatten_dict(u) for u in users]
-            fieldnames = list(flat_users[0].keys())
-            for u in flat_users[1:]:
-                for k in u.keys():
-                    if k not in fieldnames:
-                        fieldnames.append(k)
-            with open(path, "w", newline="", encoding="utf-8") as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
-                writer.writeheader()
-                writer.writerows(flat_users)
-
-        write_csv(valid_path, valid_users)
-        write_csv(invalid_path, invalid_users)
-        print(f"\n✅ Saved {len(valid_users)} valid users → {valid_path}")
-        print(f"⚠️ Saved {len(invalid_users)} invalid users → {invalid_path}")
-
     # -------------------------------
     # PUBLIC METHOD
     # -------------------------------
@@ -137,5 +115,11 @@ class Extractor:
         print(f"→ Valid users: {len(self.all_users)}")
         print(f"→ Invalid users: {len(self.invalid_users)}")
 
-        self._save_to_csv(self.all_users, self.invalid_users)
+        # Save CSV in timestamp folder
+        CSVHelper.save_to_csv(
+            self.all_users,
+            self.invalid_users,
+            output_path=self.run_dir / "valid_users.csv"
+        )
+
         return self.all_users

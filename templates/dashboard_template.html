@@ -2,179 +2,194 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>ETL Dashboard - Password Strength</title>
+    <title>ETL Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
             background-color: #f4f7f9;
             margin: 0;
-            padding: 40px;
+            padding: 20px;
             color: #333;
         }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: #fff;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            text-align: center;
-            margin-bottom: 30px;
-            color: #222;
-        }
-
-        /* Tabs */
-        .tab-container {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #ddd;
-        }
-        .tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            border: none;
-            background: none;
-            font-weight: bold;
-            font-size: 1.1em;
-            color: #555;
-            transition: all 0.3s;
-        }
-        .tab.active {
-            color: #0078d4;
-            border-bottom: 3px solid #0078d4;
-        }
-
-        /* Content sections */
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-
-        .stat-box {
-            text-align: center;
-            margin: 20px 0;
-        }
-        .bar-container {
-            background: #e0e0e0;
-            border-radius: 25px;
-            overflow: hidden;
-            height: 30px;
-            width: 100%;
-            margin-top: 15px;
-        }
-        .bar-strong {
-            background: #4caf50;
-            height: 100%;
-            color: white;
-            text-align: center;
-            line-height: 30px;
-            font-weight: bold;
-        }
-        .bar-weak {
-            background: #f44336;
-            height: 100%;
-            color: white;
-            text-align: center;
-            line-height: 30px;
-            font-weight: bold;
-        }
-
-        /* DB Table */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            padding: 12px;
-            border: 1px solid #ddd;
-            text-align: center;
-        }
-        th {
-            background-color: #0078d4;
-            color: white;
-        }
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-
-        footer {
-            text-align: center;
-            font-size: 0.9em;
-            color: #777;
-            margin-top: 40px;
-        }
+        h1 { text-align: center; margin-bottom: 15px; }
+        .tab-container { display: flex; justify-content: center; margin-bottom: 20px; }
+        .tab { padding: 10px 20px; cursor: pointer; font-weight: bold; border: none; background: #eee; margin: 0 5px; border-radius: 5px; }
+        .tab.active { background: #0078d4; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .stats-row { display: flex; flex-wrap: wrap; justify-content: space-around; margin-bottom: 25px; }
+        .stat-box { background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 3px 6px rgba(0,0,0,0.1); flex: 1 1 250px; margin: 10px; min-width: 220px; text-align: center; }
+        table { border-collapse: collapse; margin: 0 auto 20px auto; font-size: 0.85em; min-width: 400px; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background-color: #0078d4; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        footer { text-align: center; font-size: 0.8em; color: #777; margin-top: 30px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🔐 Password Strength Dashboard</h1>
-        <p><strong>Date:</strong> {{timestamp}}</p>
-        <p><strong>Total Users:</strong> {{total}}</p>
+    <h1>ETL Dashboard</h1>
+    <p style="text-align:center;"><strong>Date:</strong> {{timestamp}}</p>
 
-        <div class="tab-container">
-            <button class="tab active" onclick="showTab('stats')">📊 Statistics</button>
-            <button class="tab" onclick="showTab('db')">🗄️ Database</button>
-        </div>
+    <div class="tab-container">
+        <button class="tab active" onclick="showTab(event, 'general')">📊 General Stats</button>
+        <button class="tab" onclick="showTab(event, 'password')">🔑 Password Stats</button>
+        <button class="tab" onclick="showTab(event, 'db')">🗄️ Database</button>
+    </div>
 
-        <!-- Statistics Tab -->
-        <div id="stats" class="tab-content active">
+    <!-- General Statistics Tab -->
+    <div id="general" class="tab-content active">
+        <div class="stats-row">
             <div class="stat-box">
+                <h3>Statistics Overview</h3>
                 <p><strong>Total Users:</strong> {{total}}</p>
-                <p><strong>Strong Passwords:</strong> {{strong}} ({{strong_percent}}%)</p>
-                <p><strong>Weak Passwords:</strong> {{weak}} ({{weak_percent}}%)</p>
+                <p><strong>Average Age:</strong> {{average_age}}</p>
+                <p><strong>Minimum Age:</strong> {{minimum_age}}</p>
+                <p><strong>Maximum Age:</strong> {{maximum_age}}</p>
+                <p><strong>Different Countries:</strong> {{different_countries}}</p>
             </div>
-            <div class="bar-container">
-                <div class="bar-strong" style="width: {{strong_percent}}%;">Strong</div>
+            <div class="stat-box">
+                <h3>Users per Country</h3>
+                <canvas id="countryChart" width="200" height="200"></canvas>
             </div>
-            <div class="bar-container" style="margin-top:10px;">
-                <div class="bar-weak" style="width: {{weak_percent}}%;">Weak</div>
+            <div class="stat-box">
+                <h3>Gender Distribution</h3>
+                <canvas id="genderChart" width="200" height="200"></canvas>
             </div>
-        </div>
-
-        <!-- Database Tab -->
-        <div id="db" class="tab-content">
-            <h2 style="text-align:center;">📁 User Database</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>User ID</th>
-                        <th>Username</th>
-                        <th>Password Strength</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for user in users %}
-                    <tr>
-                        <td>{{ user.id }}</td>
-                        <td>{{ user.username }}</td>
-                        <td>{{ user.strength }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div class="stat-box">
+                <h3>Age Decades</h3>
+                <canvas id="ageChart" width="200" height="200"></canvas>
+            </div>
         </div>
     </div>
 
-    <footer>
-        ETL System © 2025 – Emilio Delgado, Marc Dulcet, Marc Tomàs and Gerard Pascual.
-    </footer>
+    <!-- Password Statistics Tab -->
+    <div id="password" class="tab-content">
+        <div class="stats-row">
+            <div class="stat-box">
+                <h3>Password Strength</h3>
+                <p><strong>Short Password % (&lt;8 chars):</strong> {{short_password_percent}}</p>
+                <p><strong>Strong Passwords:</strong> {{strong}} ({{strong_percent}}%)</p>
+                <p><strong>Weak Passwords:</strong> {{weak}} ({{weak_percent}}%)</p>
+                <canvas id="passwordChart" width="200" height="200"></canvas>
+            </div>
+            <div class="stat-box">
+                <h3>Password Length Distribution</h3>
+                <canvas id="passwordLengthChart" width="200" height="200"></canvas>
+            </div>
+            <div class="stat-box">
+                <h3>Password Complexity</h3>
+                <canvas id="passwordComplexityChart" width="200" height="200"></canvas>
+            </div>
+            <div class="stat-box">
+                <h3>Top 10 Passwords</h3>
+                <canvas id="topPasswordsChart" width="200" height="200"></canvas>
+            </div>
+            <div class="stat-box">
+                <h3>Correlation Stats</h3>
 
-    <script>
-        function showTab(tabId) {
-            // Hide all tab contents
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            // Remove active class from tabs
-            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-            // Activate clicked tab
-            document.getElementById(tabId).classList.add('active');
-            event.target.classList.add('active');
+                <!-- Just print the variables -->
+                <p>Name in Password %: {{name_in_password_display}}</p>
+                <p>Birthyear in Password: {{birthyear_in_password_display}}</p>
+                <canvas id="correlationChart" width="200" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Database Tab -->
+    <div id="db" class="tab-content">
+        <h2 style="text-align:center;">📁 User Database</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>User ID</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Country</th>
+                    <th>Password Strength</th>
+                </tr>
+            </thead>
+            <tbody>{{user_rows}}</tbody>
+        </table>
+    </div>
+
+    <footer>ETL System © 2025 – Your Team</footer>
+
+<script>
+let passwordChartsRendered = false;
+
+function showTab(e, tabId) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    e.currentTarget.classList.add('active');
+
+    if(tabId === "password" && !passwordChartsRendered) {
+        renderPasswordCharts();
+        passwordChartsRendered = true;
+    }
+}
+
+function createPieChart(ctxId, labels, data, colors) {
+    const ctx = document.getElementById(ctxId).getContext('2d');
+    return new Chart(ctx, {
+        type: 'pie',
+        data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, hoverOffset: 15 }] },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const total = context.dataset.data.reduce((a,b)=>a+b,0);
+                            const percent = ((value/total)*100).toFixed(2);
+                            return `${label}: ${value} (${percent}%)`;
+                        }
+                    }
+                }
+            }
         }
-    </script>
+    });
+}
+
+function renderPasswordCharts() {
+    createPieChart('passwordChart', ['Strong','Weak'], [{{strong}}, {{weak}}], ['#4caf50','#f44336']);
+
+    new Chart(document.getElementById('passwordLengthChart').getContext('2d'), {
+        type: 'bar',
+        data: { labels: {{password_length_keys}}, datasets: [{ label: 'Count', data: {{password_length_values}}, backgroundColor: '#2196f3' }] },
+        options: { plugins:{ legend:{ display:false } } }
+    });
+
+    createPieChart('passwordComplexityChart',
+        ['Lowercase Only','Numbers Only','Letters+Numbers','Includes Symbols'],
+        [{{lowercase_only}}, {{numbers_only}}, {{letters_and_numbers}}, {{includes_symbols}}],
+        ['#ff9800','#9c27b0','#03a9f4','#f44336']
+    );
+
+    new Chart(document.getElementById('topPasswordsChart').getContext('2d'), {
+        type: 'bar',
+        data: { labels: {{top_passwords_labels}}, datasets: [{ label: 'Count', data: {{top_passwords_counts}}, backgroundColor: '#607d8b' }] },
+        options: { plugins:{ legend:{ display:false } } }
+    });
+
+    createPieChart('correlationChart',
+        ['Name in Password','Birthyear in Password'],
+        [{{name_in_password_percent}}, {{birthyear_in_password_percent}}],
+        ['#ff9800','#03a9f4']
+    );
+}
+
+// Render general charts immediately
+window.onload = function() {
+    createPieChart('countryChart', {{country_labels}}, {{country_counts_list}}, {{country_colors}});
+    createPieChart('genderChart', {{gender_labels}}, {{gender_counts_list}}, ['#ff9800','#2196f3']);
+    createPieChart('ageChart', {{age_decade_labels}}, {{age_decade_counts}}, {{age_decade_colors}});
+};
+</script>
+
 </body>
 </html>
