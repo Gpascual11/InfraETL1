@@ -4,6 +4,7 @@
 
 import csv
 from pathlib import Path
+from collections import OrderedDict
 from validator import Validator
 
 class CSVHelper:
@@ -70,10 +71,12 @@ class CSVHelper:
             # Flatten data
             flattened = [CSVHelper.flatten_dict(u) for u in data]
             # Collect all fieldnames
-            fieldnames = set()
+            fieldnames = []
             for u in flattened:
-                fieldnames.update(u.keys())
-            fieldnames = list(fieldnames)
+                for k in u.keys():
+                    if k not in fieldnames:
+                        fieldnames.append(k)
+
             # Write CSV
             with open(file_path, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
