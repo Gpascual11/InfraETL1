@@ -10,6 +10,7 @@ from validator import Validator
 from pathlib import Path
 import math
 import string
+from datetime import datetime  # <-- Import datetime
 
 
 class Transformer:
@@ -21,9 +22,9 @@ class Transformer:
       - Computes additional derived metrics (password strength, complexity, patterns)
     """
 
-    def __init__(self, users_input):
+    def __init__(self, users_input, encryption_key: bytes = None):
         if isinstance(users_input, (str, Path)):
-            self.users = CSVHelper.load_csv(users_input)
+            self.users = CSVHelper.load_csv(users_input, key=encryption_key)
         else:
             self.users = users_input
 
@@ -66,6 +67,29 @@ class Transformer:
         username_lengths = [len(user.get("login", {}).get("username", "")) for user in self.users]
         passwords = [user.get("login", {}).get("password", "") for user in self.users]
 
+        # --- NEW CALCULATIONS ---
+
+        # 1. Registration Year
+        reg_years = defaultdict(int)
+        for user in self.users:
+            reg_date_str = user.get("registered", {}).get("date", "")
+            if reg_date_str:
+                try:
+                    # Parse ISO date string e.g., "2007-07-19T05:49:50.528Z"
+                    reg_year = datetime.fromisoformat(reg_date_str.rstrip("Z")).year
+                    reg_years[str(reg_year)] += 1
+                except ValueError:
+                    continue  # Skip invalid date format
+
+        # 2. Timezone
+        timezones = Counter(
+            user.get("location", {}).get("timezone", {}).get("offset")
+            for user in self.users
+            if user.get("location", {}).get("timezone", {}).get("offset")
+        )
+
+        # --- END NEW CALCULATIONS ---
+
         # Age by decade
         age_decades = defaultdict(int)
         for age in ages:
@@ -81,6 +105,11 @@ class Transformer:
         # Correlation stats
         name_in_pass_stats = self.calculate_name_in_password(self.users)
         birthyear_in_pass_stats = self.calculate_birthyear_in_password(self.users)
+
+        # --- NEW ---
+        # 3. Username in Password
+        username_in_pass_stats = self.calculate_username_in_password(self.users)
+        # --- END NEW ---
 
         stats = {
             "total_users": len(self.users),
@@ -112,8 +141,13 @@ class Transformer:
             "password_pattern_stats": password_pattern_stats,
             "password_strength": password_stats,
             "name_in_password": name_in_pass_stats,
-            "birthyear_in_password": birthyear_in_pass_stats
+            "birthyear_in_password": birthyear_in_pass_stats,
 
+            # --- NEW STATS ADDED ---
+            "username_in_password": username_in_pass_stats,
+            "registration_by_year": dict(sorted(reg_years.items())),
+            "timezone_distribution": dict(timezones.most_common(10))
+            # --- END NEW STATS ---
         }
 
         return stats
@@ -121,11 +155,10 @@ class Transformer:
     # -------------------------------
     # PASSWORD STRENGTH
     # -------------------------------
-    import math
-    import string
-
     def calculate_password_strength_stats(self, entropy_threshold=50):
-        """Compute strong vs weak passwords metrics using entropy formula E = log2(R^L)."""
+        """
+        Compute strong vs weak passwords metrics using entropy and complexity rules.
+        """
         total = len(self.users)
         if total == 0:
             return {"strong": 0, "weak": 0, "percent_strong": 0.0, "total_users": 0}
@@ -150,10 +183,32 @@ class Transformer:
             L = len(password)
             return L * math.log2(R) if R > 0 else 0.0
 
-        strong = sum(
-            1 for user in self.users
-            if estimate_entropy(user.get("login", {}).get("password", "")) >= entropy_threshold
-        )
+        def check_complexity(password):
+            """
+            Checks if password meets basic complexity rules.
+            Requires at least 3 of 4 types: lower, upper, digit, symbol.
+            """
+            if not password:
+                return False
+
+            types = 0
+            if any(c.islower() for c in password): types += 1
+            if any(c.isupper() for c in password): types += 1
+            if any(c.isdigit() for c in password): types += 1
+            if any(c in string.punctuation for c in password): types += 1
+
+            return types >= 3
+
+        strong = 0
+        for user in self.users:
+            password = user.get("login", {}).get("password", "")
+
+            passes_entropy = estimate_entropy(password) >= entropy_threshold
+            passes_complexity = check_complexity(password)
+
+            if passes_entropy and passes_complexity:
+                strong += 1
+
         percent_strong = round((strong / total) * 100, 2)
 
         return {
@@ -169,7 +224,7 @@ class Transformer:
     @staticmethod
     def calculate_password_complexity(passwords):
         """Classify passwords: lowercase only, numbers only, letters+numbers, includes symbols."""
-        counts = defaultdict(float)
+        counts = defaultdict(int)
         for p in passwords:
             if not p:
                 continue
@@ -181,10 +236,6 @@ class Transformer:
                 counts["includes_symbols"] += 1
             else:
                 counts["letters_and_numbers"] += 1
-
-        total = len(passwords)
-        for k in counts:
-            counts[k] = round(counts[k] / total * 100, 2) if total else 0.0
 
         return dict(counts)
 
@@ -207,9 +258,7 @@ class Transformer:
             password = user.get("login", {}).get("password", "").lower()
             first = user.get("name", {}).get("first", "").lower()
             last = user.get("name", {}).get("last", "").lower()
-            if first and first in password:
-                count += 1
-            elif last and last in password:
+            if (first and first in password) or (last and last in password):
                 count += 1
         return {"count": count, "total": total}
 
@@ -220,11 +269,27 @@ class Transformer:
         total = len(users)
         for user in users:
             password = user.get("login", {}).get("password", "")
-            dob_date = user.get("dob", {}).get("date", "")  # ejemplo: "1952-06-18T..."
+            dob_date = user.get("dob", {}).get("date", "")
             birth_year = dob_date[:4] if dob_date else ""
             if birth_year and birth_year in password:
                 count += 1
         return {"count": count, "total": total}
+
+    # --- NEW METHOD ---
+    @staticmethod
+    def calculate_username_in_password(users):
+        """Return the count of users using their username in password."""
+        count = 0
+        total = len(users)
+        for user in users:
+            password = user.get("login", {}).get("password", "").lower()
+            username = user.get("login", {}).get("username", "").lower()
+            if username and username in password:
+                count += 1
+        return {"count": count, "total": total}
+
+    # --- END NEW METHOD ---
+
     # -------------------------------
     # GETTER
     # -------------------------------

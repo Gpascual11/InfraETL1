@@ -1,233 +1,347 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>ETL Dashboard</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-body {
-    font-family: 'Segoe UI', Arial, sans-serif;
-    background-color: #f4f7f9;
-    margin: 0;
-    padding: 20px;
-    color: #333;
-}
-h1 { text-align: center; margin-bottom: 15px; }
-.tab-container { display: flex; justify-content: center; margin-bottom: 20px; }
-.tab { padding: 10px 20px; cursor: pointer; font-weight: bold; border: none; background: #eee; margin: 0 5px; border-radius: 5px; }
-.tab.active { background: #0078d4; color: white; }
-.tab-content { display: none; }
-.tab-content.active { display: block; }
-.stats-row { display: flex; flex-wrap: wrap; justify-content: space-around; margin-bottom: 25px; }
-.stat-box { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 3px 6px rgba(0,0,0,0.1); flex: 1 1 300px; margin: 10px; min-width: 260px; text-align: center; }
-.stat-box h3 { font-size: 1.6em; margin-bottom: 15px; }
-.stat-box p { font-size: 1.3em; margin: 5px 0; }
-table { border-collapse: collapse; margin: 0 auto 20px auto; font-size: 0.85em; min-width: 400px; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-th { background-color: #0078d4; color: white; }
-tr:nth-child(even) { background-color: #f9f9f9; }
-footer { text-align: center; font-size: 0.8em; color: #777; margin-top: 30px; }
-.download-buttons { margin: 15px 0; display: flex; justify-content: center; gap: 15px; }
-.download-buttons a { padding: 10px 15px; background:#0078d4; color:white; text-decoration:none; border-radius:6px; font-weight:bold; }
-.download-buttons a:hover { background:#005fa3; }
-.password-combined { display: flex; flex-direction: column; gap: 25px; align-items: center; }
-.password-bars { display:flex; flex-direction:column; gap:10px; width:90%; }
-.password-bars div.outer-bar { background:#ddd; border-radius:10px; height:24px; overflow:hidden; }
-.password-bars div.inner-bar { height:100%; border-radius:10px; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ETL Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #F8F8F8;
+            color: #333333;
+            line-height: 1.6;
+        }
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        h1, h2, h3 {
+            color: #74B8C1;
+            border-bottom: 2px solid #A7C7C6;
+            padding-bottom: 10px;
+            margin-top: 30px;
+        }
+        .header-section {
+            background-color: #B0D0D3;
+            color: #333333;
+            padding: 30px 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+            margin-bottom: 20px;
+        }
+        .header-section h1 {
+            color: #333333;
+            border-bottom: none;
+            margin: 0;
+        }
+
+        /* --- Tab Styles --- */
+        .tab {
+            overflow: hidden;
+            border-bottom: 2px solid #A7C7C6;
+            background-color: #E0EFEB;
+            border-radius: 8px 8px 0 0;
+        }
+        .tab button {
+            background-color: inherit;
+            float: left;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 14px 20px;
+            transition: 0.3s;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #555;
+        }
+        .tab button:hover {
+            background-color: #d0e0e0;
+        }
+        .tab button.active {
+            background-color: #B0D0D3;
+            color: #333;
+            border-bottom: 3px solid #74B8C1;
+        }
+        .tabcontent {
+            display: none;
+            padding: 20px 12px;
+        }
+        /* --- End Tab Styles --- */
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .stat-card {
+            background-color: #E0EFEB;
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid #A7C7C6;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            text-align: center;
+        }
+        .stat-card h3 {
+            color: #74B8C1;
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+            border-bottom: none;
+        }
+        .stat-card p {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin: 0;
+            color: #333333;
+        }
+        .chart-section {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: #fcfcfc;
+            border-radius: 8px;
+            border: 1px solid #A7C7C6;
+        }
+        .chart-container {
+            margin-bottom: 30px;
+            padding-bottom: 30px;
+            border-bottom: 1px dashed #A7C7C6;
+        }
+        .chart-container:last-child {
+            border-bottom: none;
+        }
+        .chart-container h3 {
+            color: #74B8C1;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        /* Chart grid for side-by-side charts */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            align-items: center;
+        }
+        .chart-half {
+            max-width: 400px; /* Constrain pie/doughnut charts */
+            margin: 0 auto;
+        }
+        .chart-full {
+            width: 100%;
+        }
+
+        /* Download Section */
+        .download-list {
+            list-style: none;
+            padding: 0;
+        }
+        .download-list li {
+            background-color: #E0EFEB;
+            border: 1px solid #A7C7C6;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            padding: 15px;
+        }
+        .download-list a {
+            text-decoration: none;
+            color: #333;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .download-list a:hover {
+            color: #74B8C1;
+        }
+        .download-list span {
+            font-size: 0.9em;
+            color: #555;
+            margin-left: 10px;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: #777;
+            font-size: 0.9em;
+        }
+    </style>
 </head>
 <body>
-
-<h1>ETL Dashboard</h1>
-<p style="text-align:center;"><strong>Date:</strong> {{timestamp}}</p>
-
-<div class="tab-container">
-    <button class="tab active" onclick="showTab(event, 'general')">📊 General Stats</button>
-    <button class="tab" onclick="showTab(event, 'password')">🔑 Password Stats</button>
-    <button class="tab" onclick="showTab(event, 'db')">🗄️ Database</button>
-</div>
-
-<!-- General Stats -->
-<div id="general" class="tab-content active">
-    <div class="stats-row">
-        <div class="stat-box">
-            <h3>Statistics Overview</h3>
-            <p><strong>Total Users:</strong> {{total}}</p>
-            <p><strong>Average Age:</strong> {{average_age}}</p>
-            <p><strong>Minimum Age:</strong> {{minimum_age}}</p>
-            <p><strong>Maximum Age:</strong> {{maximum_age}}</p>
-            <p><strong>Different Countries:</strong> {{different_countries}}</p>
-        </div>
-
-        <div class="stat-box">
-            <h3>Users per Country</h3>
-            <canvas id="countryChart" width="200" height="200"></canvas>
-        </div>
-
-        <div class="stat-box">
-            <h3>Gender Distribution</h3>
-            <canvas id="genderChart" width="200" height="200"></canvas>
-        </div>
-
-        <div class="stat-box">
-            <h3>Age Decades</h3>
-            <canvas id="ageChart" width="200" height="200"></canvas>
-        </div>
+    <div class="header-section">
+        <h1>ETL Process Dashboard</h1>
+        <p>Overview of Extracted and Transformed User Data</p>
     </div>
-</div>
 
-<!-- Password Stats -->
-<div id="password" class="tab-content">
-    <div class="stats-row">
-        <!-- Password Strength + Length Distribution combined -->
-        <div class="stat-box password-combined">
-            <h3>Password Strength</h3>
-            <!-- Password Strength Bars -->
-            <div class="password-bars">
-                <div style="display:flex; justify-content:space-between;">
-                    <span>Strong</span><span>{{strong_percent}}%</span>
+    <div class="container">
+        <div class="tab">
+            <button class="tablinks" onclick="openTab(event, 'General')" id="defaultOpen">General Stats</button>
+            <button class="tablinks" onclick="openTab(event, 'Password')">Password Analysis</button>
+            <button class="tablinks" onclick="openTab(event, 'Downloads')">File Downloads</button>
+        </div>
+
+        <div id="General" class="tabcontent">
+            <h2>Overall Summary</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Users Processed</h3>
+                    <p>{{TOTAL_USERS}}</p>
                 </div>
-                <div class="outer-bar">
-                    <div class="inner-bar" style="width:{{strong_percent}}%; background:#4caf50;"></div>
+                <div class="stat-card">
+                    <h3>Average Age</h3>
+                    <p>{{AVG_AGE}}</p>
                 </div>
-                <div style="display:flex; justify-content:space-between; margin-top:5px;">
-                    <span>Weak</span><span>{{weak_percent}}%</span>
+                <div class="stat-card">
+                    <h3>Most Frequent Gender</h3>
+                    <p>{{MOST_FREQUENT_GENDER}}</p>
                 </div>
-                <div class="outer-bar">
-                    <div class="inner-bar" style="width:{{weak_percent}}%; background:#f44336;"></div>
+                <div class="stat-card">
+                    <h3>Unique Countries</h3>
+                    <p>{{DIFFERENT_COUNTRIES}}</p>
                 </div>
             </div>
-            <br>
-            <h3>Password Lenght</h3>
-            <!-- Password Length Distribution → Column + Line -->
-            <canvas id="passwordLengthChart" width="600" height="350"></canvas>
+
+            <div class="chart-section">
+                <div class="chart-grid">
+                    <div class="chart-half">
+                        <h3>Gender Distribution</h3>
+                        <canvas id="genderChart"></canvas>
+                    </div>
+                    <div class="chart-half">
+                        <h3>Age Decade Distribution</h3>
+                        <canvas id="ageChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-container chart-full">
+                    <h3>Users Per Country (Top 10)</h3>
+                    <canvas id="countryChart"></canvas>
+                </div>
+
+                <div class="chart-container chart-full">
+                    <h3>Email Domains (Top 10)</h3>
+                    <canvas id="emailChart"></canvas>
+                </div>
+
+                <div class="chart-container chart-full">
+                    <h3>Registrations by Year</h3>
+                    <canvas id="regYearChart"></canvas>
+                </div>
+                <div class="chart-container chart-full">
+                    <h3>Timezone Distribution (Top 10)</h3>
+                    <canvas id="timezoneChart"></canvas>
+                </div>
+                </div>
         </div>
 
-        <div class="stat-box">
-            <h3>Password Complexity</h3>
-            <canvas id="passwordComplexityChart" width="200" height="200"></canvas>
+        <div id="Password" class="tabcontent">
+            <h2>Password Analysis</h2>
+            <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+                <div class="stat-card">
+                    <h3>Avg Password Length</h3>
+                    <p>{{AVG_PASSWORD_LENGTH}}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Strong Passwords</h3>
+                    <p style="font-size: 1.3em;">{{PASSWORD_STRENGTH_SUMMARY}}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Name in Password</h3>
+                    <p>{{NAME_IN_PASSWORD}}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Birth Year in Password</h3>
+                    <p>{{BIRTHYEAR_IN_PASSWORD}}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Username in Password</h3>
+                    <p>{{USERNAME_IN_PASSWORD}}</p>
+                </div>
+                </div>
+
+            <div class="chart-section">
+                <div class="chart-grid">
+                    <div class="chart-half">
+                        <h3>Password Complexity</h3>
+                        <canvas id="passComplexityChart"></canvas>
+                    </div>
+                    <div class="chart-container chart-half">
+                        <h3>Top 10 Passwords</h3>
+                        <pre id="top-passwords-pre" style="text-align: left; padding: 10px;">{{TOP_PASSWORDS_TABLE}}</pre>
+                    </div>
+                </div>
+
+                <div class="chart-container chart-full">
+                    <h3>Password Length Distribution</h3>
+                    <canvas id="passLengthChart"></canvas>
+                </div>
+
+            </div>
         </div>
 
-        <div class="stat-box">
-            <h3>Top 10 Passwords</h3>
-            <canvas id="topPasswordsChart" width="200" height="200"></canvas>
+        <div id="Downloads" class="tabcontent">
+            <h2>File Downloads</h2>
+            <p>Download the encrypted source files and the key needed to decrypt them.</p>
+            <ul class="download-list">
+                <li>
+                    <a href="{{VALID_CSV_PATH}}" download>valid_users.csv.enc</a>
+                    <span>(Encrypted valid user data)</span>
+                </li>
+                <li>
+                    <a href="{{INVALID_CSV_PATH}}" download>invalid_users.csv.enc</a>
+                    <span>(Encrypted invalid user data)</span>
+                </li>
+                <li>
+                    <a href="{{KEY_PATH}}" download>encryption_key.key</a>
+                    <span>(The key to decrypt the files)</span>
+                </li>
+                <li>
+                    <a href="{{STATS_JSON_PATH}}" download>statistics.json</a>
+                    <span>(The raw JSON stats file)</span>
+                </li>
+            </ul>
         </div>
 
-        <div class="stat-box">
-            <h3>Correlation Stats</h3>
-            <p>Name in Password: {{name_in_password_display}}</p>
-            <p>Birthyear in Password: {{birthyear_in_password_display}}</p>
-            <canvas id="correlationChart" width="200" height="200"></canvas>
+        <div class="footer">
+            <p>ETL Dashboard generated on {{TIMESTAMP}}</p>
         </div>
     </div>
-</div>
 
-<!-- Database -->
-<div id="db" class="tab-content">
-    <h2 style="text-align:center;">📁 User Database</h2>
-    <div class="download-buttons">
-        <button onclick="window.open('valid_users.csv','_blank')" style="
-            padding:10px 15px;
-            margin:5px;
-            background:#0078d4;
-            color:white;
-            border:none;
-            border-radius:5px;
-            cursor:pointer;
-        ">Download Users CSV</button>
-
-        <button onclick="window.open('invalid_users.csv','_blank')" style="
-            padding:10px 15px;
-            margin:5px;
-            background:#0078d4;
-            color:white;
-            border:none;
-            border-radius:5px;
-            cursor:pointer;
-        ">Download Invalid Users CSV</button>
-
-    </div>
-    </div>
-</div>
-
-<footer>ETL System © 2025 - Team A2</footer>
-
-<script>
-let passwordChartsRendered = false;
-
-function showTab(e, tabId){
-    document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
-    document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
-    e.currentTarget.classList.add('active');
-
-    if(tabId==="password" && !passwordChartsRendered){
-        renderPasswordCharts();
-        passwordChartsRendered=true;
-    }
-}
-
-function createPieChart(ctxId, labels, data, colors){
-    return new Chart(document.getElementById(ctxId).getContext('2d'),{
-        type:'pie',
-        data:{labels,datasets:[{data,backgroundColor:colors,hoverOffset:15}]},
-        options:{responsive:true,plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:ctx=>{
-            const value=ctx.raw||0;
-            const total=ctx.dataset.data.reduce((a,b)=>a+b,0);
-            const percent=total?((value/total)*100).toFixed(2):0;
-            return `${ctx.label}: ${value} (${percent}%)`;
-        }}}}}
-    });
-}
-
-function createBarChart(ctxId, labels, data, colors, horizontal=false){
-    return new Chart(document.getElementById(ctxId).getContext('2d'),{
-        type:'bar',
-        data:{labels,datasets:[{label:'Count',data,backgroundColor:colors||'#2196f3',borderRadius:6}]},
-        options:{
-            indexAxis:horizontal?'y':'x',
-            responsive:true,
-            plugins:{legend:{display:false},tooltip:{enabled:true}},
-            scales:{x:{beginAtZero:true},y:{title:{display:horizontal,text:horizontal?'':'Count'}}}
+    <script>
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tablinks");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
         }
-    });
-}
 
-function renderPasswordCharts(){
-    // Password Length → Column + Line
-    const ctxLength=document.getElementById('passwordLengthChart').getContext('2d');
-    new Chart(ctxLength,{
-        data:{
-            labels: {{password_length_keys}},
-            datasets:[
-                {type:'bar',label:'Count',data:{{password_length_values}},backgroundColor:'#2196f3',borderRadius:6, order:0},
-                {type:'line',label:'Count Line',data:{{password_length_values}},borderColor:'#0d47a1',borderWidth:2,fill:false,tension:0.3, order:1, pointBackgroundColor: '#0d47a1', pointRadius: 4}
-            ]
-        },
-        options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,title:{display:true,text:'Number of Users'}}}}
-    });
+        document.addEventListener("DOMContentLoaded", function() {
+            document.getElementById("General").style.display = "block";
+            var defaultButton = document.getElementById("defaultOpen");
+            if (defaultButton) {
+                defaultButton.className += " active";
+            }
+        });
+    </script>
 
-    // Password Complexity
-    createBarChart('passwordComplexityChart',
-        ['Lowercase Only','Numbers Only','Letters+Numbers','Includes Symbols'],
-        [{{lowercase_only}},{{numbers_only}},{{letters_and_numbers}},{{includes_symbols}}],
-        ['#ff9800','#9c27b0','#03a9f4','#f44336']
-    );
+    {{CHART_JS_SCRIPT}}
 
-    // Top Passwords → horizontal
-    const topColors={{top_passwords_counts}}.map((_,i)=>`hsl(${i*36%360},70%,50%)`);
-    createBarChart('topPasswordsChart',{{top_passwords_labels}},{{top_passwords_counts}},topColors,true);
-
-    // Correlation → pie
-    createPieChart('correlationChart',['Name in Password','Birthyear in Password'],[{{name_in_password_percent}},{{birthyear_in_password_percent}}],['#ff9800','#03a9f4']);
-}
-
-// General Charts
-window.onload=function(){
-    createPieChart('countryChart',{{country_labels}},{{country_counts_list}},{{country_colors}});
-    createPieChart('genderChart',{{gender_labels}},{{gender_counts_list}},['#2196f3','#e91e63']);
-    createBarChart('ageChart',{{age_decade_labels}},{{age_decade_counts}},{{age_decade_colors}});
-};
-</script>
 </body>
 </html>
