@@ -19,6 +19,40 @@ class PasswordAuditor:
         self.users = users
         self.passwords = [user.get("login", {}).get("password", "") for user in self.users]
 
+    # --- Internal helper methods (still used by calculate_password_strength_stats) ---
+    def _estimate_entropy(self, password):
+        """Estimate entropy based on character set size R and length L."""
+        if not password:
+            return 0.0
+
+        R = 0
+        if any(c.islower() for c in password): R += 26
+        if any(c.isupper() for c in password): R += 26
+        if any(c.isdigit() for c in password): R += 10
+        if any(c in string.punctuation for c in password): R += len(string.punctuation)
+        if any(c.isspace() for c in password): R += 1
+
+        L = len(password)
+        return L * math.log2(R) if R > 0 else 0.0
+
+    def _check_complexity(self, password):
+        """
+        Checks if password meets basic complexity rules.
+        Requires at least 3 of 4 types: lower, upper, digit, symbol.
+        """
+        if not password:
+            return False
+
+        types = 0
+        if any(c.islower() for c in password): types += 1
+        if any(c.isupper() for c in password): types += 1
+        if any(c.isdigit() for c in password): types += 1
+        if any(c in string.punctuation for c in password): types += 1
+
+        return types >= 3
+
+    # --- End of helper methods ---
+
     def generate_all_stats(self) -> dict:
         """Runs all password audit methods and returns a combined dictionary."""
 
@@ -29,6 +63,8 @@ class PasswordAuditor:
         birthyear_in_pass_stats = self.calculate_birthyear_in_password()
         username_in_pass_stats = self.calculate_username_in_password()
 
+        most_secure_password = self.find_most_secure_password()
+
         # Combine all stats into a single dictionary
         all_stats = {
             "password_complexity_stats": password_complexity_stats,
@@ -37,11 +73,64 @@ class PasswordAuditor:
             "name_in_password": name_in_pass_stats,
             "birthyear_in_password": birthyear_in_pass_stats,
             "username_in_password": username_in_pass_stats,
+            "most_secure_password": most_secure_password,
         }
         return all_stats
 
     # -------------------------------
-    # PASSWORD STRENGTH
+    # Find Most Secure Password (MODIFIED)
+    # -------------------------------
+    def find_most_secure_password(self):
+        """
+        Finds the most secure password based on a simple scoring system
+        (length + complexity bonuses) minus disqualifiers (personal info).
+        """
+        best_password = "N/A"
+        max_score = -1
+
+        for user in self.users:
+            password_original = user.get("login", {}).get("password", "")
+            if not password_original:
+                continue
+
+            password_lower = password_original.lower()
+            current_score = 0
+
+            # 1. Check for personal info (disqualifiers)
+            first = user.get("name", {}).get("first", "").lower()
+            last = user.get("name", {}).get("last", "").lower()
+            if (first and first in password_lower) or (last and last in password_lower):
+                current_score = 0
+                continue  # Instantly disqualified
+
+            dob_date = user.get("dob", {}).get("date", "")
+            birth_year = dob_date[:4] if dob_date else ""
+            if birth_year and birth_year in password_original:
+                current_score = 0
+                continue  # Instantly disqualified
+
+            username = user.get("login", {}).get("username", "").lower()
+            if username and username in password_lower:
+                current_score = 0
+                continue  # Instantly disqualified
+
+            # 2. If it passes, calculate its score
+            current_score = len(password_original)
+            if any(c.islower() for c in password_original): current_score += 3
+            if any(c.isupper() for c in password_original): current_score += 3
+            if any(c.isdigit() for c in password_original): current_score += 3
+            if any(c in string.punctuation for c in password_original): current_score += 3
+
+            # 3. Compare to the best score so far
+            if current_score > max_score:
+                max_score = current_score
+                best_password = password_original  # Store original case
+
+        return best_password
+
+    # -------------------------------
+    # PASSWORD STRENGTH (Unchanged)
+    # This still uses the strict entropy rules, which is fine.
     # -------------------------------
     def calculate_password_strength_stats(self, entropy_threshold=50):
         """
@@ -51,43 +140,11 @@ class PasswordAuditor:
         if total == 0:
             return {"strong": 0, "weak": 0, "percent_strong": 0.0, "total_users": 0}
 
-        def estimate_entropy(password):
-            """Estimate entropy based on character set size R and length L."""
-            if not password:
-                return 0.0
-
-            R = 0
-            if any(c.islower() for c in password): R += 26
-            if any(c.isupper() for c in password): R += 26
-            if any(c.isdigit() for c in password): R += 10
-            if any(c in string.punctuation for c in password): R += len(string.punctuation)
-            if any(c.isspace() for c in password): R += 1
-
-            L = len(password)
-            return L * math.log2(R) if R > 0 else 0.0
-
-        def check_complexity(password):
-            """
-            Checks if password meets basic complexity rules.
-            Requires at least 3 of 4 types: lower, upper, digit, symbol.
-            """
-            if not password:
-                return False
-
-            types = 0
-            if any(c.islower() for c in password): types += 1
-            if any(c.isupper() for c in password): types += 1
-            if any(c.isdigit() for c in password): types += 1
-            if any(c in string.punctuation for c in password): types += 1
-
-            return types >= 3
-
         strong = 0
         for user in self.users:
             password = user.get("login", {}).get("password", "")
-
-            passes_entropy = estimate_entropy(password) >= entropy_threshold
-            passes_complexity = check_complexity(password)
+            passes_entropy = self._estimate_entropy(password) >= entropy_threshold
+            passes_complexity = self._check_complexity(password)
 
             if passes_entropy and passes_complexity:
                 strong += 1
@@ -102,7 +159,7 @@ class PasswordAuditor:
         }
 
     # -------------------------------
-    # PASSWORD COMPLEXITY
+    # PASSWORD COMPLEXITY (Unchanged)
     # -------------------------------
     def calculate_password_complexity(self):
         """Classify passwords: lowercase only, numbers only, letters+numbers, includes symbols."""
@@ -121,7 +178,7 @@ class PasswordAuditor:
         return dict(counts)
 
     # -------------------------------
-    # PASSWORD PATTERN
+    # PASSWORD PATTERN (Unchanged)
     # -------------------------------
     def calculate_password_pattern_stats(self, top_n=10):
         """Return top N most common passwords."""

@@ -61,10 +61,15 @@ VM2_RUN_PATH="output/$RUN_DIR_NAME"
 ssh $VM2_HOST "cd $PROJECT_DIR && source ~/.profile && source venv/bin/activate && python3 run_transform_load.py $VM2_RUN_PATH" \
     || error_exit "Transform & Load script failed on VM2."
 
-# --- 7. (NEW) Start HTTP Server on VM2 ---
+# --- 7. Start HTTP Server on VM2 ---
 echo "--- 7. Starting web server on VM2 ---"
-# This command runs the server in the background and detaches it
-ssh $VM2_HOST "cd $PROJECT_DIR/$VM2_RUN_PATH && nohup python3 -m http.server 8000 > /dev/null 2>&1 &" \
+
+# Stop any process already using port 8000. (Ignore errors if no process is found)
+# The "8000/tcp: 5822" output is NORMAL.
+ssh $VM2_HOST "fuser -k 8000/tcp || true"
+
+# (FIXED: Added -f flag to the ssh command to force it into the background)
+ssh -f $VM2_HOST "cd $PROJECT_DIR/$VM2_RUN_PATH && nohup python3 -m http.server 8000 > /dev/null 2>&1 &" \
     || error_exit "Failed to start HTTP server on VM2."
 
 # --- 8. (NEW) Open Dashboard on Host ---
@@ -77,7 +82,7 @@ echo -e "\nDashboard is now being served from VM2."
 echo -e "Access it here: \033[0;32m$DASHBOARD_URL\033[0m"
 
 echo "--- 8. Opening dashboard in your browser... ---"
-xdg-open "$DASHBOARD_URL" || error_exit "Failed to open dashboard. (Is xdg-open installed?)"
+xdg-open "$DASHBOARD_URL" > /dev/null 2>&1 || error_exit "Failed to open dashboard. (Is xdg-open installed?)"
 
 echo -e "\n\033[0;32m--- SCRIPT COMPLETED SUCCESSFULLY ---\033[0m"
 echo -e "\n\033[0;33mNOTE: The web server is still running on VM2.\033[0m"

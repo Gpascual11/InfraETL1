@@ -19,8 +19,7 @@ class Loader:
         self.source = source
         self.output_dir = output_dir
         self.output_dir.mkdir(parents=True, exist_ok=True)
-
-        # Build a path to the template file relative to this .py file
+        # (MODIFIED) Load the template file path
         self.template_path = Path(__file__).parent / "templates" / "dashboard_template.html"
 
     def save_stats_and_dashboard(self, users_processed: list, stats: dict):
@@ -41,12 +40,21 @@ class Loader:
         # Generate HTML Dashboard
         dashboard_path = self.output_dir / "dashboard.html"
 
-        # Check if dashboard generation was successful
+        # Check if template file exists
+        if not self.template_path.exists():
+            print(f"Error: Dashboard template not found at {self.template_path}")
+            return
+
+        # (MODIFIED) Check if dashboard generation was successful
         success = self._generate_html_dashboard(dashboard_path, stats)
 
         if success:
             print(f"Dashboard generated and saved to: {dashboard_path}")
-            webbrowser.open_new_tab(f"file://{dashboard_path.resolve()}")
+            # This line is for local execution, will be skipped on VM
+            try:
+                webbrowser.open_new_tab(f"file://{dashboard_path.resolve()}")
+            except Exception:
+                print("(Skipping browser open on server)")
         else:
             print(f"Failed to generate dashboard. Skipping browser open.")
 
@@ -59,7 +67,6 @@ class Loader:
         color3 = "#E0EFEB"
 
         # Tooltip Helper Callback
-        # This function is reused by multiple charts to show "Count: X"
         count_tooltip_callback = """
         tooltip: {
             callbacks: {
@@ -181,7 +188,7 @@ class Loader:
         comp_data = stats.get("password_complexity_stats", {})
         comp_labels = [k.replace("_", " ").title() for k in comp_data.keys()]
         comp_values = list(comp_data.values())
-        comp_total = sum(comp_values) if sum(comp_values) > 0 else 1  # Avoid division by zero
+        comp_total = sum(comp_values) if sum(comp_values) > 0 else 1
 
         pass_comp_script = f"""
         new Chart(document.getElementById('passComplexityChart'), {{
@@ -327,67 +334,75 @@ class Loader:
         Generates an HTML dashboard by populating a template file.
         Returns True on success, False on failure.
         """
+        try:
+            with open(self.template_path, "r", encoding="utf-8") as f:
+                html_content = f.read()
 
-        if not self.template_path.exists():
-            print(f"Error: dashboard_template.html not found.")
-            print(f"   (Looking for it at: {self.template_path.resolve()})")
+            # 1. Fill General Stats
+            html_content = html_content.replace("{{TOTAL_USERS}}", str(stats.get("total_users", "N/A")))
+            html_content = html_content.replace("{{AVG_AGE}}", str(stats.get("average_age", "N/A")))
+            html_content = html_content.replace("{{MOST_FREQUENT_GENDER}}",
+                                                str(stats.get("most_frequent_gender", "N/A")))
+            html_content = html_content.replace("{{DIFFERENT_COUNTRIES}}", str(stats.get("different_countries", "N/A")))
+            html_content = html_content.replace("{{TIMESTAMP}}", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
+            # 2. Fill Password Stats
+            pass_len_stats = stats.get("password_length_stats", {})
+            html_content = html_content.replace("{{AVG_PASSWORD_LENGTH}}",
+                                                str(pass_len_stats.get("average", "N/A")))
+
+            pass_strength_stats = stats.get("password_strength", {})
+            strong_percent = pass_strength_stats.get("percent_strong", "N/A")
+            strong_count = pass_strength_stats.get("strong", "N/A")
+            html_content = html_content.replace("{{PASSWORD_STRENGTH_SUMMARY}}", f"{strong_percent}% ({strong_count})")
+
+            name_stats = stats.get("name_in_password", {})
+            html_content = html_content.replace("{{NAME_IN_PASSWORD}}",
+                                                f"{name_stats.get('count', 0)} / {name_stats.get('total', 0)}")
+
+            bday_stats = stats.get("birthyear_in_password", {})
+            html_content = html_content.replace("{{BIRTHYEAR_IN_PASSWORD}}",
+                                                f"{bday_stats.get('count', 0)} / {bday_stats.get('total', 0)}")
+
+            user_stats = stats.get("username_in_password", {})
+            html_content = html_content.replace("{{USERNAME_IN_PASSWORD}}",
+                                                f"{user_stats.get('count', 0)} / {user_stats.get('total', 0)}")
+
+            # (NEW) Fill new password length card
+            html_content = html_content.replace("{{PASS_LEN_MIN}}", str(pass_len_stats.get("min", "N/A")))
+            html_content = html_content.replace("{{PASS_LEN_MAX}}", str(pass_len_stats.get("max", "N/A")))
+            html_content = html_content.replace("{{PASS_LEN_SHORT_PERCENT}}",
+                                                str(pass_len_stats.get("short_percentage", "N/A")))
+
+            # (NEW) Fill most secure password
+            html_content = html_content.replace("{{MOST_SECURE_PASSWORD}}",
+                                                str(stats.get("most_secure_password", "N/A")))
+
+            # 3. Create Top 10 Passwords Table
+            top_pass_list = stats.get("password_pattern_stats", [])
+            top_pass_str = "Rank | Password   | Count\n"
+            top_pass_str += "--------------------------\n"
+            for i, item in enumerate(top_pass_list, 1):
+                top_pass_str += f" {i:<2} | {item['password']:<10} | {item['count']}\n"
+            html_content = html_content.replace("{{TOP_PASSWORDS_TABLE}}", top_pass_str)
+
+            # 4. Fill Download Paths (Relative paths for the server)
+            html_content = html_content.replace("{{VALID_CSV_PATH}}", "valid_users.csv.enc")
+            html_content = html_content.replace("{{INVALID_CSV_PATH}}", "invalid_users.csv.enc")
+            html_content = html_content.replace("{{STATS_JSON_PATH}}", "statistics.json")
+            # We removed the key file, so ensure this placeholder is gone
+            html_content = html_content.replace("{{KEY_PATH}}", "#key-removed")
+
+            # 5. Inject Chart.js script
+            chart_script = self._create_chart_js_script(stats)
+            html_content = html_content.replace("{{CHART_JS_SCRIPT}}", chart_script)
+
+            # 6. Write the final HTML file
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write(html_content)
+
+            return True
+
+        except Exception as e:
+            print(f"Error generating dashboard: {e}")
             return False
-
-        with open(self.template_path, "r", encoding="utf-8") as f:
-            html_content = f.read()
-
-        # 1. Fill General Stats
-        html_content = html_content.replace("{{TOTAL_USERS}}", str(stats.get("total_users", "N/A")))
-        html_content = html_content.replace("{{AVG_AGE}}", str(stats.get("average_age", "N/A")))
-        html_content = html_content.replace("{{MOST_FREQUENT_GENDER}}", str(stats.get("most_frequent_gender", "N/A")))
-        html_content = html_content.replace("{{DIFFERENT_COUNTRIES}}", str(stats.get("different_countries", "N/A")))
-
-        # 2. Fill Password Stats
-        html_content = html_content.replace("{{AVG_PASSWORD_LENGTH}}",
-                                            str(stats.get("password_length_stats", {}).get("average", "N/A")))
-
-        pass_strength_stats = stats.get("password_strength", {})
-        strong_percent = pass_strength_stats.get("percent_strong", "N/A")
-        strong_count = pass_strength_stats.get("strong", "N/A")
-        total_users = pass_strength_stats.get("total_users", "N/A")
-        pass_summary_str = f"{strong_percent}% ({strong_count} / {total_users})"
-        html_content = html_content.replace("{{PASSWORD_STRENGTH_SUMMARY}}", pass_summary_str)
-
-        name_stats = stats.get("name_in_password", {})
-        html_content = html_content.replace("{{NAME_IN_PASSWORD}}",
-                                            f"{name_stats.get('count', 'N/A')} / {name_stats.get('total', 'N/A')}")
-
-        bday_stats = stats.get("birthyear_in_password", {})
-        html_content = html_content.replace("{{BIRTHYEAR_IN_PASSWORD}}",
-                                            f"{bday_stats.get('count', 'N/A')} / {bday_stats.get('total', 'N/A')}")
-
-        user_in_pass_stats = stats.get("username_in_password", {})
-        html_content = html_content.replace("{{USERNAME_IN_PASSWORD}}",
-                                            f"{user_in_pass_stats.get('count', 'N/A')} / {user_in_pass_stats.get('total', 'N/A')}")
-
-        # Format Top 10 Passwords for the <pre> tag
-        top_pass = stats.get("password_pattern_stats", [])
-        top_pass_str = "\n".join([f"Count: {item['count']:<4} | Pass: {item['password']}" for item in top_pass])
-        if not top_pass_str:
-            top_pass_str = "No common passwords found."
-        html_content = html_content.replace("{{TOP_PASSWORDS_TABLE}}", top_pass_str)
-
-        # 3. Fill Download Links
-        # These are relative to the dashboard.html file
-        html_content = html_content.replace("{{VALID_CSV_PATH}}", "valid_users.csv.enc")
-        html_content = html_content.replace("{{INVALID_CSV_PATH}}", "invalid_users.csv.enc")
-        html_content = html_content.replace("{{STATS_JSON_PATH}}", "statistics.json")
-
-        # 4. Fill Timestamp
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        html_content = html_content.replace("{{TIMESTAMP}}", timestamp)
-
-        # 5. Inject Chart.js Script
-        chart_script = self._create_chart_js_script(stats)
-        html_content = html_content.replace("{{CHART_JS_SCRIPT}}", chart_script)
-
-        # 6. Write the final file
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(html_content)
-
-        return True
