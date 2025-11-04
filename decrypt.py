@@ -10,7 +10,7 @@ def decrypt_file(key_path, file_path):
     key_p = Path(key_path)
     file_p = Path(file_path)
 
-    # --- 1. Load the Key ---
+    # 1. Load the Key
     if not key_p.exists():
         print(f"Error: Key file not found at {key_p}")
         return
@@ -24,7 +24,7 @@ def decrypt_file(key_path, file_path):
         print(f"Error: Invalid key. {e}")
         return
 
-    # --- 2. Load the Encrypted File ---
+    # 2. Load the Encrypted File
     if not file_p.exists():
         print(f"Error: Encrypted file not found at {file_p}")
         return
@@ -32,7 +32,7 @@ def decrypt_file(key_path, file_path):
     with open(file_p, "rb") as f:
         encrypted_data = f.read()
 
-    # --- 3. Decrypt and Save ---
+    # 3. Decrypt and Save
     try:
         decrypted_data = fernet.decrypt(encrypted_data)
 
@@ -43,7 +43,7 @@ def decrypt_file(key_path, file_path):
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(decrypted_data.decode('utf-8'))
 
-        print(f"✅ Success! Decrypted file saved to:\n{output_path}")
+        print(f"Success! Decrypted file saved to:\n{output_path}")
 
     except Exception as e:
         print(f"Error: Decryption failed. The key may be incorrect or the file corrupted.")

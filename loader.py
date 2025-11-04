@@ -20,23 +20,23 @@ class Loader:
         self.output_dir = output_dir
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Build a path to the template file inside the 'templates' folder
+        # Build a path to the template file relative to this .py file
         self.template_path = Path(__file__).parent / "templates" / "dashboard_template.html"
 
     def save_stats_and_dashboard(self, users_processed: list, stats: dict):
         """Save statistics to JSON and generate HTML dashboard."""
 
-        # Save raw processed data to JSON
+        # Save raw processed data
         processed_json_path = self.output_dir / "processed_users.json"
         with open(processed_json_path, "w", encoding="utf-8") as f:
             json.dump(users_processed, f, indent=4)
-        print(f"✅ Processed users saved to: {processed_json_path}")
+        print(f"Processed users saved to: {processed_json_path}")
 
         # Save statistics to JSON
         stats_json_path = self.output_dir / "statistics.json"
         with open(stats_json_path, "w", encoding="utf-8") as f:
             json.dump(stats, f, indent=4)
-        print(f"✅ Stats saved: {stats_json_path}")
+        print(f"Stats saved: {stats_json_path}")
 
         # Generate HTML Dashboard
         dashboard_path = self.output_dir / "dashboard.html"
@@ -45,10 +45,10 @@ class Loader:
         success = self._generate_html_dashboard(dashboard_path, stats)
 
         if success:
-            print(f"✅ Dashboard generated and saved to: {dashboard_path}")
+            print(f"Dashboard generated and saved to: {dashboard_path}")
             webbrowser.open_new_tab(f"file://{dashboard_path.resolve()}")
         else:
-            print(f"❌ Failed to generate dashboard. Skipping browser open.")
+            print(f"Failed to generate dashboard. Skipping browser open.")
 
     def _create_chart_js_script(self, stats: dict) -> str:
         """Generates the JavaScript <script> block for Chart.js."""
@@ -57,9 +57,9 @@ class Loader:
         color1 = "#74B8C1"
         color2 = "#B0D0D3"
         color3 = "#E0EFEB"
-        color_text = "#333333"
 
-        # --- Tooltip Helper ---
+        # Tooltip Helper Callback
+        # This function is reused by multiple charts to show "Count: X"
         count_tooltip_callback = """
         tooltip: {
             callbacks: {
@@ -243,7 +243,6 @@ class Loader:
         }});
         """
 
-        # --- NEW CHARTS JS ---
         # 7. Registration by Year (Line Chart)
         reg_data = stats.get("registration_by_year", {})
         reg_labels = list(reg_data.keys())
@@ -303,11 +302,9 @@ class Loader:
             }}
         }});
         """
-        # --- END NEW CHARTS JS ---
 
         return f"""
         <script>
-            // Wait for the DOM to be ready
             document.addEventListener("DOMContentLoaded", function() {{
                 try {{
                     {gender_script}
@@ -332,20 +329,20 @@ class Loader:
         """
 
         if not self.template_path.exists():
-            print(f"⚠️ Error: dashboard_template.html not found.")
+            print(f"Error: dashboard_template.html not found.")
             print(f"   (Looking for it at: {self.template_path.resolve()})")
             return False
 
         with open(self.template_path, "r", encoding="utf-8") as f:
             html_content = f.read()
 
-        # --- 1. Fill General Stats ---
+        # 1. Fill General Stats
         html_content = html_content.replace("{{TOTAL_USERS}}", str(stats.get("total_users", "N/A")))
         html_content = html_content.replace("{{AVG_AGE}}", str(stats.get("average_age", "N/A")))
         html_content = html_content.replace("{{MOST_FREQUENT_GENDER}}", str(stats.get("most_frequent_gender", "N/A")))
         html_content = html_content.replace("{{DIFFERENT_COUNTRIES}}", str(stats.get("different_countries", "N/A")))
 
-        # --- 2. Fill Password Stats ---
+        # 2. Fill Password Stats
         html_content = html_content.replace("{{AVG_PASSWORD_LENGTH}}",
                                             str(stats.get("password_length_stats", {}).get("average", "N/A")))
 
@@ -364,11 +361,9 @@ class Loader:
         html_content = html_content.replace("{{BIRTHYEAR_IN_PASSWORD}}",
                                             f"{bday_stats.get('count', 'N/A')} / {bday_stats.get('total', 'N/A')}")
 
-        # --- NEW ---
         user_in_pass_stats = stats.get("username_in_password", {})
         html_content = html_content.replace("{{USERNAME_IN_PASSWORD}}",
                                             f"{user_in_pass_stats.get('count', 'N/A')} / {user_in_pass_stats.get('total', 'N/A')}")
-        # --- END NEW ---
 
         # Format Top 10 Passwords for the <pre> tag
         top_pass = stats.get("password_pattern_stats", [])
@@ -377,21 +372,22 @@ class Loader:
             top_pass_str = "No common passwords found."
         html_content = html_content.replace("{{TOP_PASSWORDS_TABLE}}", top_pass_str)
 
-        # --- 3. Fill Download Links ---
+        # 3. Fill Download Links
+        # These are relative to the dashboard.html file
         html_content = html_content.replace("{{VALID_CSV_PATH}}", "valid_users.csv.enc")
         html_content = html_content.replace("{{INVALID_CSV_PATH}}", "invalid_users.csv.enc")
         html_content = html_content.replace("{{KEY_PATH}}", "encryption_key.key")
         html_content = html_content.replace("{{STATS_JSON_PATH}}", "statistics.json")
 
-        # --- 4. Fill Timestamp ---
+        # 4. Fill Timestamp
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         html_content = html_content.replace("{{TIMESTAMP}}", timestamp)
 
-        # --- 5. Inject Chart.js Script ---
+        # 5. Inject Chart.js Script
         chart_script = self._create_chart_js_script(stats)
         html_content = html_content.replace("{{CHART_JS_SCRIPT}}", chart_script)
 
-        # --- 6. Write the final file ---
+        # 6. Write the final file
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(html_content)
 

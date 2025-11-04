@@ -10,7 +10,7 @@ from validator import Validator
 from pathlib import Path
 import math
 import string
-from datetime import datetime  # <-- Import datetime
+from datetime import datetime
 
 
 class Transformer:
@@ -67,8 +67,6 @@ class Transformer:
         username_lengths = [len(user.get("login", {}).get("username", "")) for user in self.users]
         passwords = [user.get("login", {}).get("password", "") for user in self.users]
 
-        # --- NEW CALCULATIONS ---
-
         # 1. Registration Year
         reg_years = defaultdict(int)
         for user in self.users:
@@ -88,28 +86,22 @@ class Transformer:
             if user.get("location", {}).get("timezone", {}).get("offset")
         )
 
-        # --- END NEW CALCULATIONS ---
-
-        # Age by decade
+        # 3. Age by decade
         age_decades = defaultdict(int)
         for age in ages:
             decade = (age // 10) * 10
             age_decades[f"{decade}s"] += 1
 
-        # Password metrics
+        # 4. Password metrics
         password_lengths = [len(p) for p in passwords if p]
         password_stats = self.calculate_password_strength_stats()
         password_complexity_stats = self.calculate_password_complexity(passwords)
         password_pattern_stats = self.calculate_password_pattern_stats(passwords)
 
-        # Correlation stats
+        # 5. Correlation stats
         name_in_pass_stats = self.calculate_name_in_password(self.users)
         birthyear_in_pass_stats = self.calculate_birthyear_in_password(self.users)
-
-        # --- NEW ---
-        # 3. Username in Password
         username_in_pass_stats = self.calculate_username_in_password(self.users)
-        # --- END NEW ---
 
         stats = {
             "total_users": len(self.users),
@@ -142,12 +134,9 @@ class Transformer:
             "password_strength": password_stats,
             "name_in_password": name_in_pass_stats,
             "birthyear_in_password": birthyear_in_pass_stats,
-
-            # --- NEW STATS ADDED ---
             "username_in_password": username_in_pass_stats,
             "registration_by_year": dict(sorted(reg_years.items())),
             "timezone_distribution": dict(timezones.most_common(10))
-            # --- END NEW STATS ---
         }
 
         return stats
@@ -169,16 +158,11 @@ class Transformer:
                 return 0.0
 
             R = 0
-            if any(c.islower() for c in password):
-                R += 26
-            if any(c.isupper() for c in password):
-                R += 26
-            if any(c.isdigit() for c in password):
-                R += 10
-            if any(c in string.punctuation for c in password):
-                R += len(string.punctuation)
-            if any(c.isspace() for c in password):
-                R += 1  # space counts as a possible symbol
+            if any(c.islower() for c in password): R += 26
+            if any(c.isupper() for c in password): R += 26
+            if any(c.isdigit() for c in password): R += 10
+            if any(c in string.punctuation for c in password): R += len(string.punctuation)
+            if any(c.isspace() for c in password): R += 1
 
             L = len(password)
             return L * math.log2(R) if R > 0 else 0.0
@@ -203,6 +187,9 @@ class Transformer:
         for user in self.users:
             password = user.get("login", {}).get("password", "")
 
+            # A password is "strong" only if it meets BOTH criteria:
+            # 1. High entropy (long and/or random)
+            # 2. High complexity (uses multiple character types)
             passes_entropy = estimate_entropy(password) >= entropy_threshold
             passes_complexity = check_complexity(password)
 
@@ -237,6 +224,7 @@ class Transformer:
             else:
                 counts["letters_and_numbers"] += 1
 
+        # Return the raw counts directly
         return dict(counts)
 
     # -------------------------------
@@ -275,7 +263,6 @@ class Transformer:
                 count += 1
         return {"count": count, "total": total}
 
-    # --- NEW METHOD ---
     @staticmethod
     def calculate_username_in_password(users):
         """Return the count of users using their username in password."""
@@ -287,8 +274,6 @@ class Transformer:
             if username and username in password:
                 count += 1
         return {"count": count, "total": total}
-
-    # --- END NEW METHOD ---
 
     # -------------------------------
     # GETTER

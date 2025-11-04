@@ -1,3 +1,7 @@
+# ===============================
+# CLASS: VALIDATOR
+# ===============================
+
 import unicodedata
 import re
 
@@ -34,15 +38,16 @@ class Validator:
 
         normalized = unicodedata.normalize("NFKC", text)
 
+        # Allow known special formats to pass
         if (
-            re.fullmatch(r"&[a-zA-Z0-9#]+;", normalized)
-            or re.fullmatch(r"^[+-]\d{1,2}:\d{2}$", normalized)
-            or re.fullmatch(r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$", normalized)
-            or re.fullmatch(r"^https?://\S+$", normalized)
+            re.fullmatch(r"&[a-zA-Z0-9#]+;", normalized)  # HTML entities
+            or re.fullmatch(r"^[+-]\d{1,2}:\d{2}$", normalized)  # Timezone offsets
+            or re.fullmatch(r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$", normalized)  # Email
+            or re.fullmatch(r"^https?://\S+$", normalized)  # URL
         ):
             return False
 
-        # Allowed Latin + punctuation
+        # Allowed Latin + common punctuation
         allowed_pattern = re.compile(r"^[\w\s'’‘\-–—.,;:/()@+À-ÿ&]+$", re.UNICODE)
         if allowed_pattern.fullmatch(normalized):
             return False
@@ -52,7 +57,7 @@ class Validator:
             if unicodedata.category(ch).startswith("C"):
                 return True
 
-        # Reject characters outside Latin Extended range
+        # Reject characters outside Latin Extended range (covers most European languages)
         for ch in normalized:
             if ord(ch) > 591:
                 return True
@@ -60,7 +65,7 @@ class Validator:
         return False
 
     # -------------------------------
-    # CSV HELPERS
+    # ITERATION HELPER
     # -------------------------------
     @staticmethod
     def iterate_fields(data, parent_key=""):
@@ -82,5 +87,3 @@ class Validator:
                 yield from Validator.iterate_fields(item, full_key)
         else:
             yield parent_key, data
-
-

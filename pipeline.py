@@ -1,3 +1,7 @@
+# ===============================
+# CLASS: PIPELINE
+# ===============================
+
 from extractor import Extractor
 from transformer import Transformer
 from loader import Loader
@@ -18,15 +22,14 @@ class ETLPipeline:
         self.run_dir = self.base_output_dir / self.timestamp
         self.run_dir.mkdir(parents=True, exist_ok=True)
 
-        # --- MODIFIED ---
+        # Generate a single encryption key for this pipeline run
         self.encryption_key = Fernet.generate_key()
 
         # Save the key to the run directory
         key_path = self.run_dir / "encryption_key.key"
         with open(key_path, "wb") as key_file:
             key_file.write(self.encryption_key)
-        print(f"🔑 Encryption key saved to: {key_path}")
-        # --- END MODIFICATION ---
+        print(f"Encryption key saved to: {key_path}")
 
     def run(self):
         print("=================================")
