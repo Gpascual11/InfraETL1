@@ -1,3 +1,16 @@
+python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+
+ssh vm1@192.168.122.34
+echo 'export ETL_ENCRYPTION_KEY="GENERATED_KEY' >> ~/.bashrc
+source ~/.bashrc
+exit
+
+ssh vm2@192.168.122.231
+echo 'export ETL_ENCRYPTION_KEY="GENERATED_KEY"' >> ~/.bashrc
+source ~/.bashrc
+exit
+
+
 ssh-keygen -t ed25519 -C "your_email@example.com"
 cat ~/.ssh/id_ed25519.pub
 # Copy the output and add it to your GitHub account under Settings > SSH and GPG keys > New SSH key
