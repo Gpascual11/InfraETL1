@@ -2,8 +2,11 @@
 # CLASS: PIPELINE
 # ===============================
 
+import os  # <-- MODIFIED
+import sys  # <-- MODIFIED
 from extractor import Extractor
 from transformer import Transformer
+from passwordauditor import PasswordAuditor  # <-- MODIFIED
 from loader import Loader
 from datetime import datetime
 from pathlib import Path
@@ -22,14 +25,16 @@ class ETLPipeline:
         self.run_dir = self.base_output_dir / self.timestamp
         self.run_dir.mkdir(parents=True, exist_ok=True)
 
-        # Generate a single encryption key for this pipeline run
-        self.encryption_key = Fernet.generate_key()
+        # --- (MODIFIED) Get key from environment ---
+        key_str = os.environ.get("ETL_ENCRYPTION_KEY")
+        if not key_str:
+            print("Error: ETL_ENCRYPTION_KEY environment variable not set.")
+            print("Please set the variable in your ~/.profile or ~/.bashrc")
+            sys.exit(1)
 
-        # Save the key to the run directory
-        key_path = self.run_dir / "encryption_key.key"
-        with open(key_path, "wb") as key_file:
-            key_file.write(self.encryption_key)
-        print(f"Encryption key saved to: {key_path}")
+        self.encryption_key = key_str.encode()
+        print("Encryption key loaded securely from environment.")
+        # --- End of modification ---
 
     def run(self):
         print("=================================")
@@ -58,6 +63,15 @@ class ETLPipeline:
         transformer.validate_data()
         stats = transformer.generate_stats()
         users_processed = transformer.get_users()
+
+        # ========== (NEW) PASSWORD AUDIT ==========
+        print("--- Running Password Audit ---")
+        auditor = PasswordAuditor(users_processed)
+        password_stats = auditor.generate_all_stats()
+
+        # Merge the two stat dictionaries
+        stats.update(password_stats)
+        # --- End of modification ---
 
         # ========== LOAD ==========
         loader = Loader(source=users_processed, output_dir=self.run_dir)
