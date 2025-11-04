@@ -1,77 +1,50 @@
+
+--- GENERATE ENCRYPTION KEY ---
 python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 
+--- FIREWALL SETUP ON VM2 ---
 sudo ufw allow 8000/tcp
 
+--- SET ENVIRONMENT VARIABLE ---
 ssh vm1@192.168.122.34
 echo 'export ETL_ENCRYPTION_KEY="GENERATED_KEY' >> ~/.profile
 source ~/.profile
-exit
 
 ssh vm2@192.168.122.231
 echo 'export ETL_ENCRYPTION_KEY="GENERATED_KEY"' >> ~/.profile
 source ~/.profile
-exit
-
 We save it in ~/.profile because of how SSH runs commands.
 When you run a command remotely like ssh vm1 "do_something", it starts a non-interactive shell.
 ~/.profile is loaded for login shells, which includes the type of session your ssh command starts.
 
-
+--- GITHUB SSH KEY SETUP ---
 ssh-keygen -t ed25519 -C "your_email@example.com"
 cat ~/.ssh/id_ed25519.pub
 # Copy the output and add it to your GitHub account under Settings > SSH and GPG keys > New SSH key
 git clone git@github.com:username/repo-name.git
 cd repo-name
-# Now you can use git commands like git pull and git push without entering your username and password
 
-
+--- VM1 SETUP ---
 ssh vm1@192.168.122.34
-# 1. Install Git, Python-pip, and Python-venv
 sudo apt update
 sudo apt install -y git python3-pip python3-venv
-
-# 2. Clone your project from GitHub (replace with your actual repo URL)
 git clone https://github.com/gerardpf/InfraETL1.git
-
-# 3. Go into your project folder
 cd InfraETL1
-
-# 4. Create a virtual environment
 python3 -m venv venv
-
-# 5. Activate the environment
 source venv/bin/activate
-
-# 6. Install Python libraries for the Extractor
 pip install requests cryptography
 
-# 7. Log out of the VM
-exit
-
+--- VM2 SETUP ---
 ssh vm2@192.168.122.231
-
-# 1. Install Git, Python-pip, and Python-venv
 sudo apt update
 sudo apt install -y git python3-pip python3-venv
-
-# 2. Clone your project from GitHub (replace with your actual repo URL)
 git clone https://github.com/gerardpf/InfraETL1.git
-
-# 3. Go into your project folder
 cd InfraETL1
-
-# 4. Create a virtual environment
 python3 -m venv venv
-
-# 5. Activate the environment
 source venv/bin/activate
-
-# 6. Install Python libraries for the Transformer
 pip install cryptography
 
-# 7. Log out of the VM
-exit
-
+--- SSH KEY SETUP BETWEEN VMS ---
 ssh vm2@192.168.122.231
 ssh-keygen -t rsa
 ssh-copy-id vm1@192.168.122.34

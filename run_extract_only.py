@@ -1,11 +1,10 @@
 # new file: run_extract_only.py
 import sys
 import argparse
-import os  # <-- Import os
+import os
 from extractor import Extractor
 from datetime import datetime
 from pathlib import Path
-from cryptography.fernet import Fernet
 
 
 def main(n_users: int, max_workers: int):
@@ -18,21 +17,15 @@ def main(n_users: int, max_workers: int):
     print(f"--- Running Extraction ---")
     print(f"Output directory: {run_dir.resolve()}")
 
-    # --- (MODIFIED) Get key from environment ---
     key_str = os.environ.get("ETL_ENCRYPTION_KEY")
     if not key_str:
         print("Error: ETL_ENCRYPTION_KEY environment variable not set.")
         print("Please log in to the VM and set the variable.")
         sys.exit(1)
 
-    # Convert key from string back to bytes
     encryption_key = key_str.encode()
     print("Encryption key loaded securely from environment.")
-    # --- End of modification ---
 
-    # We no longer save the key file
-
-    # ========== EXTRACT ==========
     extractor = Extractor(
         api_url,
         n_users,
@@ -46,7 +39,6 @@ def main(n_users: int, max_workers: int):
 
 
 if __name__ == "__main__":
-    # ... (The __main__ block is unchanged) ...
     parser = argparse.ArgumentParser(description="Run ETL Extraction Step")
     parser.add_argument(
         "users",

@@ -1,21 +1,15 @@
-# ===============================
-# CLASS: PIPELINE
-# ===============================
-
-import os  # <-- MODIFIED
-import sys  # <-- MODIFIED
+import os
+import sys
 from extractor import Extractor
 from transformer import Transformer
-from passwordauditor import PasswordAuditor  # <-- MODIFIED
+from passwordauditor import PasswordAuditor
 from loader import Loader
 from datetime import datetime
 from pathlib import Path
-from cryptography.fernet import Fernet
 
 
 class ETLPipeline:
     """Coordinates the ETL process: Extract, Transform, Load"""
-
     def __init__(self, api_url: str, n_users: int, base_output_dir: str = "output", max_workers: int = 10):
         self.api_url = api_url
         self.n_users = n_users
@@ -25,7 +19,6 @@ class ETLPipeline:
         self.run_dir = self.base_output_dir / self.timestamp
         self.run_dir.mkdir(parents=True, exist_ok=True)
 
-        # --- (MODIFIED) Get key from environment ---
         key_str = os.environ.get("ETL_ENCRYPTION_KEY")
         if not key_str:
             print("Error: ETL_ENCRYPTION_KEY environment variable not set.")
@@ -34,7 +27,6 @@ class ETLPipeline:
 
         self.encryption_key = key_str.encode()
         print("Encryption key loaded securely from environment.")
-        # --- End of modification ---
 
     def run(self):
         print("=================================")
@@ -43,7 +35,6 @@ class ETLPipeline:
         print(f"Extracting {self.n_users} users from API...")
         print("---------------------------------")
 
-        # ========== EXTRACT ==========
         extractor = Extractor(
             self.api_url,
             self.n_users,
@@ -54,7 +45,6 @@ class ETLPipeline:
 
         encrypted_csv_path = extractor.extract()
 
-        # ========== TRANSFORM ==========
         transformer = Transformer(
             users_input=encrypted_csv_path,
             encryption_key=self.encryption_key
@@ -64,20 +54,15 @@ class ETLPipeline:
         stats = transformer.generate_stats()
         users_processed = transformer.get_users()
 
-        # ========== (NEW) PASSWORD AUDIT ==========
         print("--- Running Password Audit ---")
         auditor = PasswordAuditor(users_processed)
         password_stats = auditor.generate_all_stats()
 
-        # Merge the two stat dictionaries
         stats.update(password_stats)
-        # --- End of modification ---
 
-        # ========== LOAD ==========
         loader = Loader(source=users_processed, output_dir=self.run_dir)
         loader.save_stats_and_dashboard(users_processed, stats)
 
-        # ========== SUMMARY ==========
         print("\n=================================")
         print("     ETL PROCESS COMPLETED       ")
         print("=================================")

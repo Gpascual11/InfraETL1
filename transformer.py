@@ -1,7 +1,3 @@
-# ===============================
-# CLASS 2: TRANSFORMER
-# ===============================
-
 import statistics
 from collections import Counter, defaultdict
 from CSVHelper import CSVHelper
@@ -17,8 +13,10 @@ class Transformer:
       - Validates and cleans user data
       - Generates descriptive statistics
     """
-
     def __init__(self, users_input, encryption_key: bytes = None):
+        """
+        Initializes the Transformer by loading users from CSV or a list.
+        """
         if isinstance(users_input, (str, Path)):
             self.users = CSVHelper.load_csv(users_input, key=encryption_key)
         else:
@@ -26,9 +24,6 @@ class Transformer:
 
         self.invalid_users = []
 
-    # -------------------------------
-    # DATA VALIDATION
-    # -------------------------------
     def validate_data(self):
         """Detect fields containing strange or invisible characters."""
         print("Validating data integrity...")
@@ -48,9 +43,6 @@ class Transformer:
         self.users = valid_users
         print(f"Validation complete. {len(self.invalid_users)} records flagged for review.")
 
-    # -------------------------------
-    # STATISTICS GENERATION
-    # -------------------------------
     def generate_stats(self) -> dict:
         """Generate descriptive statistics for cleaned dataset."""
         print("Generating statistics...")
@@ -63,7 +55,6 @@ class Transformer:
         username_lengths = [len(user.get("login", {}).get("username", "")) for user in self.users]
         passwords = [user.get("login", {}).get("password", "") for user in self.users]
 
-        # 1. Registration Year
         reg_years = defaultdict(int)
         for user in self.users:
             reg_date_str = user.get("registered", {}).get("date", "")
@@ -74,20 +65,17 @@ class Transformer:
                 except ValueError:
                     continue
 
-        # 2. Timezone
         timezones = Counter(
             user.get("location", {}).get("timezone", {}).get("offset")
             for user in self.users
             if user.get("location", {}).get("timezone", {}).get("offset")
         )
 
-        # 3. Age by decade
         age_decades = defaultdict(int)
         for age in ages:
             decade = (age // 10) * 10
             age_decades[f"{decade}s"] += 1
 
-        # 4. Password length stats (simple stat, kept in Transformer)
         password_lengths = [len(p) for p in passwords if p]
 
         stats = {
@@ -122,9 +110,6 @@ class Transformer:
 
         return stats
 
-    # -------------------------------
-    # GETTER
-    # -------------------------------
     def get_users(self) -> list:
         """Return validated user list."""
         return self.users

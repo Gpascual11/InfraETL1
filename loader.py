@@ -1,12 +1,7 @@
-# ===============================
-# CLASS 3: LOADER
-# ===============================
-
 import json
 from pathlib import Path
 import webbrowser
 from datetime import datetime
-
 
 class Loader:
     """
@@ -14,43 +9,37 @@ class Loader:
     - Saves transformed data to a JSON file.
     - Generates and displays an HTML dashboard from a template.
     """
-
     def __init__(self, source: list, output_dir: Path):
+        """
+        Initializes the Loader with the data source and output directory.
+        """
         self.source = source
         self.output_dir = output_dir
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        # (MODIFIED) Load the template file path
         self.template_path = Path(__file__).parent / "templates" / "dashboard_template.html"
 
     def save_stats_and_dashboard(self, users_processed: list, stats: dict):
         """Save statistics to JSON and generate HTML dashboard."""
-
-        # Save raw processed data
         processed_json_path = self.output_dir / "processed_users.json"
         with open(processed_json_path, "w", encoding="utf-8") as f:
             json.dump(users_processed, f, indent=4)
         print(f"Processed users saved to: {processed_json_path}")
 
-        # Save statistics to JSON
         stats_json_path = self.output_dir / "statistics.json"
         with open(stats_json_path, "w", encoding="utf-8") as f:
             json.dump(stats, f, indent=4)
         print(f"Stats saved: {stats_json_path}")
 
-        # Generate HTML Dashboard
         dashboard_path = self.output_dir / "dashboard.html"
 
-        # Check if template file exists
         if not self.template_path.exists():
             print(f"Error: Dashboard template not found at {self.template_path}")
             return
 
-        # (MODIFIED) Check if dashboard generation was successful
         success = self._generate_html_dashboard(dashboard_path, stats)
 
         if success:
             print(f"Dashboard generated and saved to: {dashboard_path}")
-            # This line is for local execution, will be skipped on VM
             try:
                 webbrowser.open_new_tab(f"file://{dashboard_path.resolve()}")
             except Exception:
@@ -60,13 +49,10 @@ class Loader:
 
     def _create_chart_js_script(self, stats: dict) -> str:
         """Generates the JavaScript <script> block for Chart.js."""
-
-        # Chart Colors
         color1 = "#74B8C1"
         color2 = "#B0D0D3"
         color3 = "#E0EFEB"
 
-        # Tooltip Helper Callback
         count_tooltip_callback = """
         tooltip: {
             callbacks: {
@@ -79,7 +65,6 @@ class Loader:
         },
         """
 
-        # 1. Gender Chart (Pie)
         gender_labels = list(stats.get("gender_distribution", {}).keys())
         gender_data = list(stats.get("gender_distribution", {}).values())
         gender_script = f"""
@@ -100,7 +85,6 @@ class Loader:
         }});
         """
 
-        # 2. Age Decade Chart (Bar)
         age_data = stats.get("age_decade_distribution", {})
         age_labels = sorted(age_data.keys())
         age_values = [age_data[k] for k in age_labels]
@@ -128,7 +112,6 @@ class Loader:
         }});
         """
 
-        # 3. Country Chart (Horizontal Bar)
         country_data = stats.get("users_per_country", {})
         top_10_countries = sorted(country_data.items(), key=lambda x: x[1], reverse=True)[:10]
         country_labels = [c[0] for c in top_10_countries]
@@ -155,7 +138,6 @@ class Loader:
         }});
         """
 
-        # 4. Email Domain Chart (Horizontal Bar)
         email_data = stats.get("email_domain_distribution", {})
         top_10_emails = sorted(email_data.items(), key=lambda x: x[1], reverse=True)[:10]
         email_labels = [e[0] for e in top_10_emails]
@@ -184,7 +166,6 @@ class Loader:
         }});
         """
 
-        # 5. Password Complexity (Doughnut)
         comp_data = stats.get("password_complexity_stats", {})
         comp_labels = [k.replace("_", " ").title() for k in comp_data.keys()]
         comp_values = list(comp_data.values())
@@ -219,7 +200,6 @@ class Loader:
         }});
         """
 
-        # 6. Password Length Chart (Bar)
         pass_len_data = stats.get("password_length_stats", {}).get("distribution", {})
         pass_len_sorted = sorted(pass_len_data.items(), key=lambda x: int(x[0]))
         pass_len_labels = [item[0] for item in pass_len_sorted]
@@ -250,7 +230,6 @@ class Loader:
         }});
         """
 
-        # 7. Registration by Year (Line Chart)
         reg_data = stats.get("registration_by_year", {})
         reg_labels = list(reg_data.keys())
         reg_values = list(reg_data.values())
@@ -283,7 +262,6 @@ class Loader:
         }});
         """
 
-        # 8. Timezone Distribution (Horizontal Bar)
         tz_data = stats.get("timezone_distribution", {})
         tz_labels = [f"UTC {k}" for k in tz_data.keys()]
         tz_values = list(tz_data.values())
@@ -338,18 +316,14 @@ class Loader:
             with open(self.template_path, "r", encoding="utf-8") as f:
                 html_content = f.read()
 
-            # 1. Fill General Stats
             html_content = html_content.replace("{{TOTAL_USERS}}", str(stats.get("total_users", "N/A")))
             html_content = html_content.replace("{{AVG_AGE}}", str(stats.get("average_age", "N/A")))
-            html_content = html_content.replace("{{MOST_FREQUENT_GENDER}}",
-                                                str(stats.get("most_frequent_gender", "N/A")))
+            html_content = html_content.replace("{{MOST_FREQUENT_GENDER}}", str(stats.get("most_frequent_gender", "N/A")))
             html_content = html_content.replace("{{DIFFERENT_COUNTRIES}}", str(stats.get("different_countries", "N/A")))
             html_content = html_content.replace("{{TIMESTAMP}}", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
-            # 2. Fill Password Stats
             pass_len_stats = stats.get("password_length_stats", {})
-            html_content = html_content.replace("{{AVG_PASSWORD_LENGTH}}",
-                                                str(pass_len_stats.get("average", "N/A")))
+            html_content = html_content.replace("{{AVG_PASSWORD_LENGTH}}", str(pass_len_stats.get("average", "N/A")))
 
             pass_strength_stats = stats.get("password_strength", {})
             strong_percent = pass_strength_stats.get("percent_strong", "N/A")
@@ -357,28 +331,20 @@ class Loader:
             html_content = html_content.replace("{{PASSWORD_STRENGTH_SUMMARY}}", f"{strong_percent}% ({strong_count})")
 
             name_stats = stats.get("name_in_password", {})
-            html_content = html_content.replace("{{NAME_IN_PASSWORD}}",
-                                                f"{name_stats.get('count', 0)} / {name_stats.get('total', 0)}")
+            html_content = html_content.replace("{{NAME_IN_PASSWORD}}",f"{name_stats.get('count', 0)} / {name_stats.get('total', 0)}")
 
             bday_stats = stats.get("birthyear_in_password", {})
-            html_content = html_content.replace("{{BIRTHYEAR_IN_PASSWORD}}",
-                                                f"{bday_stats.get('count', 0)} / {bday_stats.get('total', 0)}")
+            html_content = html_content.replace("{{BIRTHYEAR_IN_PASSWORD}}",f"{bday_stats.get('count', 0)} / {bday_stats.get('total', 0)}")
 
             user_stats = stats.get("username_in_password", {})
-            html_content = html_content.replace("{{USERNAME_IN_PASSWORD}}",
-                                                f"{user_stats.get('count', 0)} / {user_stats.get('total', 0)}")
+            html_content = html_content.replace("{{USERNAME_IN_PASSWORD}}",f"{user_stats.get('count', 0)} / {user_stats.get('total', 0)}")
 
-            # (NEW) Fill new password length card
             html_content = html_content.replace("{{PASS_LEN_MIN}}", str(pass_len_stats.get("min", "N/A")))
             html_content = html_content.replace("{{PASS_LEN_MAX}}", str(pass_len_stats.get("max", "N/A")))
-            html_content = html_content.replace("{{PASS_LEN_SHORT_PERCENT}}",
-                                                str(pass_len_stats.get("short_percentage", "N/A")))
+            html_content = html_content.replace("{{PASS_LEN_SHORT_PERCENT}}", str(pass_len_stats.get("short_percentage", "N/A")))
 
-            # (NEW) Fill most secure password
-            html_content = html_content.replace("{{MOST_SECURE_PASSWORD}}",
-                                                str(stats.get("most_secure_password", "N/A")))
+            html_content = html_content.replace("{{MOST_SECURE_PASSWORD}}", str(stats.get("most_secure_password", "N/A")))
 
-            # 3. Create Top 10 Passwords Table
             top_pass_list = stats.get("password_pattern_stats", [])
             top_pass_str = "Rank | Password   | Count\n"
             top_pass_str += "--------------------------\n"
@@ -386,18 +352,14 @@ class Loader:
                 top_pass_str += f" {i:<2} | {item['password']:<10} | {item['count']}\n"
             html_content = html_content.replace("{{TOP_PASSWORDS_TABLE}}", top_pass_str)
 
-            # 4. Fill Download Paths (Relative paths for the server)
             html_content = html_content.replace("{{VALID_CSV_PATH}}", "valid_users.csv.enc")
             html_content = html_content.replace("{{INVALID_CSV_PATH}}", "invalid_users.csv.enc")
             html_content = html_content.replace("{{STATS_JSON_PATH}}", "statistics.json")
-            # We removed the key file, so ensure this placeholder is gone
             html_content = html_content.replace("{{KEY_PATH}}", "#key-removed")
 
-            # 5. Inject Chart.js script
             chart_script = self._create_chart_js_script(stats)
             html_content = html_content.replace("{{CHART_JS_SCRIPT}}", chart_script)
 
-            # 6. Write the final HTML file
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write(html_content)
 

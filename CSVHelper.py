@@ -1,7 +1,3 @@
-# ===============================
-# CLASS: CSVHELPER
-# ===============================
-
 import csv
 from pathlib import Path
 import io
@@ -10,7 +6,6 @@ from cryptography.fernet import Fernet
 
 class CSVHelper:
     """Helper class for CSV serialization/deserialization and nested dict flattening."""
-
     @staticmethod
     def flatten_dict(d, parent_key="", sep="."):
         """Flatten nested dictionaries for CSV writing."""
@@ -54,14 +49,12 @@ class CSVHelper:
 
         try:
             if key:
-                # --- Decryption logic ---
                 fernet = Fernet(key)
                 with open(csv_path, "rb") as f:
                     encrypted_data = f.read()
 
                 decrypted_data = fernet.decrypt(encrypted_data).decode('utf-8')
 
-                # Use in-memory buffer for DictReader
                 buffer = io.StringIO(decrypted_data)
                 reader = csv.DictReader(buffer)
                 for row in reader:
@@ -69,7 +62,6 @@ class CSVHelper:
                     users.append(user)
 
             else:
-                # --- Original plaintext logic ---
                 with open(csv_path, "r", encoding="utf-8") as f:
                     reader = csv.DictReader(f)
                     for row in reader:
@@ -86,7 +78,7 @@ class CSVHelper:
 
     @staticmethod
     def save_to_csv(users, invalid_users, output_path=None, key: bytes = None):
-
+        """Saves a list of user dictionaries to an encrypted CSV file."""
         if output_path is None:
             raise ValueError("You must provide output_path, e.g., run_dir / 'valid_users.csv'")
 
@@ -97,17 +89,14 @@ class CSVHelper:
             if not data:
                 return
 
-            # Flatten data
             flattened = [CSVHelper.flatten_dict(u) for u in data]
 
-            # Collect all fieldnames
             fieldnames = []
             for u in flattened:
                 for k in u.keys():
                     if k not in fieldnames:
                         fieldnames.append(k)
 
-            # Write to an in-memory buffer first
             buffer = io.StringIO()
             writer = csv.DictWriter(buffer, fieldnames=fieldnames)
             writer.writeheader()
@@ -117,21 +106,17 @@ class CSVHelper:
             buffer.close()
 
             if encryption_key:
-                # --- Encryption logic ---
                 fernet = Fernet(encryption_key)
                 encrypted_data = fernet.encrypt(csv_data_str.encode('utf-8'))
                 with open(file_path, "wb") as f:
                     f.write(encrypted_data)
             else:
-                # --- Original plaintext logic ---
                 with open(file_path, "w", newline="", encoding="utf-8") as f:
                     f.write(csv_data_str)
 
-        # Save valid users
         write_csv(output_path, users, key)
         print(f"Users CSV saved at {output_path}")
 
-        # Save invalid users if any
         if invalid_users:
             suffix = ".enc" if key else ""
             invalid_path = output_path.parent / f"invalid_users.csv{suffix}"

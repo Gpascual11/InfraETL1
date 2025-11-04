@@ -1,7 +1,3 @@
-# ===============================
-# CLASS 1: EXTRACTOR
-# ===============================
-
 import requests
 import time
 import sys
@@ -9,7 +5,6 @@ from pathlib import Path
 from validator import Validator
 from CSVHelper import CSVHelper
 import concurrent.futures
-
 
 def _print_progress(current: int, total: int, bar_length: int = 40):
     """Display a console progress bar."""
@@ -46,12 +41,8 @@ class Extractor:
         self.run_dir = Path(output_dir) if output_dir else Path("output")
         self.run_dir.mkdir(parents=True, exist_ok=True)
 
-    # -------------------------------
-    # INTERNAL METHODS
-    # -------------------------------
-
     def _build_url(self) -> str:
-        """Build API URL with parameters."""
+        """Build API URL with nationality and results parameters."""
         nat_param = ",".join(self.nationalities)
         if "?" in self.api_url:
             return f"{self.api_url}&nat={nat_param}&results={self.batch_size}"
@@ -66,10 +57,8 @@ class Extractor:
             response = requests.get(url, timeout=15)
 
             if response.status_code == 429:
-                # Add newline to avoid breaking progress bar
                 print(f"\nRate limit reached (429). Waiting {retry_wait} seconds...")
                 time.sleep(retry_wait)
-                # Recursively call with doubled wait, max 60s
                 return self._fetch_batch(retry_wait=min(retry_wait * 2, 60))
 
             if response.status_code != 200:
@@ -91,52 +80,42 @@ class Extractor:
 
             return valid, invalid
 
-        # This will catch network errors AND request timeouts
         except requests.RequestException as e:
             print(f"\nNetwork error (or timeout): {e}")
-            time.sleep(5)  # Wait 5s on any network error
+            time.sleep(5)
             return [], []
 
-    # -------------------------------
-    # PUBLIC METHOD
-    # -------------------------------
-
     def extract(self) -> Path:
+        """
+        Starts the multi-threaded extraction process, collects users, and saves them to an encrypted CSV.
+        :return: Path to the saved valid users CSV file.
+        """
         print(f"\nStarting extraction of {self.total_users} users...\n")
 
-        # --- Smart Worker Calculation ---
-        # Estimate valid users per batch (e.g., 85%)
         estimated_valid_per_batch = int(self.batch_size * 0.85)
         if estimated_valid_per_batch == 0:
-            estimated_valid_per_batch = 1  # Avoid division by zero
+            estimated_valid_per_batch = 1
 
-        # Ceiling division to estimate batches needed
         estimated_batches_needed = (self.total_users + estimated_valid_per_batch - 1) // estimated_valid_per_batch
 
-        # Launch the smaller of estimated batches or max_workers
         initial_workers_to_launch = min(estimated_batches_needed, self.max_workers)
 
         print(
             f"Estimated batches: {estimated_batches_needed}. Launching {initial_workers_to_launch} initial worker(s)...")
 
-        # A set to keep track of all tasks currently running
         futures = set()
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            # Submit the initial batch of workers
             for _ in range(initial_workers_to_launch):
                 futures.add(executor.submit(self._fetch_batch))
 
-            # Loop as long as there are tasks running
             while futures:
-                # Wait for the next future to complete
                 done_iter = concurrent.futures.as_completed(futures)
                 try:
                     future = next(done_iter)
                 except StopIteration:
-                    break  # Should not happen, but safe
+                    break
 
-                # Process the result
                 try:
                     valid, invalid = future.result()
                     self.all_users.extend(valid)
@@ -146,15 +125,12 @@ class Extractor:
 
                 futures.remove(future)
 
-                # Update progress
                 current_count = min(len(self.all_users), self.total_users)
                 _print_progress(current_count, self.total_users)
 
-                # If we still need more users, submit a new task
                 if len(self.all_users) < self.total_users:
                     futures.add(executor.submit(self._fetch_batch))
 
-        # We might have overshot, so trim the list
         if len(self.all_users) > self.total_users:
             self.all_users = self.all_users[: self.total_users]
 
@@ -162,10 +138,8 @@ class Extractor:
         print(f"Valid users: {len(self.all_users)}")
         print(f"Invalid users: {len(self.invalid_users)}")
 
-        # Change file extension to .enc to show it's encrypted
         csv_output_path = self.run_dir / "valid_users.csv.enc"
 
-        # Save CSV in timestamp folder, passing the key
         CSVHelper.save_to_csv(
             self.all_users,
             self.invalid_users,

@@ -1,7 +1,3 @@
-# ===============================
-# CLASS: VALIDATOR
-# ===============================
-
 import unicodedata
 import re
 
@@ -9,11 +5,9 @@ class Validator:
     """Utility class for validating data and helper methods for ETL."""
 
     def __init__(self):
+        """Initializes the Validator"""
         self.invalid_users = []
 
-    # -------------------------------
-    # BASIC VALIDATION
-    # -------------------------------
     @staticmethod
     def is_valid_value(value) -> bool:
         """Recursively check if a value is not null or empty."""
@@ -27,9 +21,6 @@ class Validator:
             return all(Validator.is_valid_value(v) for v in value)
         return True
 
-    # -------------------------------
-    # STRANGE CHARACTER CHECK
-    # -------------------------------
     @staticmethod
     def contains_strange_characters(text: str) -> bool:
         """Return True if the string contains invalid/non-Latin/invisible characters."""
@@ -38,7 +29,6 @@ class Validator:
 
         normalized = unicodedata.normalize("NFKC", text)
 
-        # Allow known special formats to pass
         if (
             re.fullmatch(r"&[a-zA-Z0-9#]+;", normalized)  # HTML entities
             or re.fullmatch(r"^[+-]\d{1,2}:\d{2}$", normalized)  # Timezone offsets
@@ -47,26 +37,20 @@ class Validator:
         ):
             return False
 
-        # Allowed Latin + common punctuation
         allowed_pattern = re.compile(r"^[\w\s'’‘\-–—.,;:/()@+À-ÿ&]+$", re.UNICODE)
         if allowed_pattern.fullmatch(normalized):
             return False
 
-        # Reject control/invisible characters
         for ch in normalized:
             if unicodedata.category(ch).startswith("C"):
                 return True
 
-        # Reject characters outside Latin Extended range (covers most European languages)
         for ch in normalized:
             if ord(ch) > 591:
                 return True
 
         return False
 
-    # -------------------------------
-    # ITERATION HELPER
-    # -------------------------------
     @staticmethod
     def iterate_fields(data, parent_key=""):
         """

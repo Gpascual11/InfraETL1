@@ -18,7 +18,6 @@ def main():
     else:
         n_users = 10000
 
-    # Run the unified pipeline
     pipeline = ETLPipeline(api_url=api_url, n_users=n_users)
     pipeline.run()
 
