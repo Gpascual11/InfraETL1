@@ -1,14 +1,18 @@
 python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 
 ssh vm1@192.168.122.34
-echo 'export ETL_ENCRYPTION_KEY="GENERATED_KEY' >> ~/.bashrc
-source ~/.bashrc
+echo 'export ETL_ENCRYPTION_KEY="GENERATED_KEY' >> ~/.profile
+source ~/.profile
 exit
 
 ssh vm2@192.168.122.231
-echo 'export ETL_ENCRYPTION_KEY="GENERATED_KEY"' >> ~/.bashrc
-source ~/.bashrc
+echo 'export ETL_ENCRYPTION_KEY="GENERATED_KEY"' >> ~/.profile
+source ~/.profile
 exit
+
+We save it in ~/.profile because of how SSH runs commands.
+When you run a command remotely like ssh vm1 "do_something", it starts a non-interactive shell.
+~/.profile is loaded for login shells, which includes the type of session your ssh command starts.
 
 
 ssh-keygen -t ed25519 -C "your_email@example.com"
