@@ -1,5 +1,7 @@
 python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 
+sudo ufw allow 8000/tcp
+
 ssh vm1@192.168.122.34
 echo 'export ETL_ENCRYPTION_KEY="GENERATED_KEY' >> ~/.profile
 source ~/.profile

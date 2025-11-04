@@ -376,7 +376,6 @@ class Loader:
         # These are relative to the dashboard.html file
         html_content = html_content.replace("{{VALID_CSV_PATH}}", "valid_users.csv.enc")
         html_content = html_content.replace("{{INVALID_CSV_PATH}}", "invalid_users.csv.enc")
-        html_content = html_content.replace("{{KEY_PATH}}", "encryption_key.key")
         html_content = html_content.replace("{{STATS_JSON_PATH}}", "statistics.json")
 
         # 4. Fill Timestamp
