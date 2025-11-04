@@ -70,3 +70,7 @@ pip install cryptography
 # 7. Log out of the VM
 exit
 
+ssh vm2@192.168.122.231
+ssh-keygen -t rsa
+ssh-copy-id vm1@192.168.122.34
+test ssh vm1@192.168.122.34
