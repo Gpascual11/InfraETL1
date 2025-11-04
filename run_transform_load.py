@@ -3,7 +3,7 @@ import sys
 import os
 from pathlib import Path
 from transformer import Transformer
-from password_auditor import PasswordAuditor  # <-- Import new class
+from passwordauditor import PasswordAuditor
 from loader import Loader
 
 
