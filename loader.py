@@ -10,9 +10,6 @@ class Loader:
     - Generates and displays an HTML dashboard from a template.
     """
     def __init__(self, source: list, output_dir: Path):
-        """
-        Initializes the Loader with the data source and output directory.
-        """
         self.source = source
         self.output_dir = output_dir
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -45,21 +42,26 @@ class Loader:
             except Exception:
                 print("(Skipping browser open on server)")
         else:
-            print(f"Failed to generate dashboard. Skipping browser open.")
+            print("Failed to generate dashboard. Skipping browser open.")
 
     def _create_chart_js_script(self, stats: dict) -> str:
-        """Generates the JavaScript <script> block for Chart.js."""
-        color1 = "#74B8C1"
-        color2 = "#B0D0D3"
-        color3 = "#E0EFEB"
+        """Generates the JavaScript <script> block for Chart.js with coherent colors and layout."""
+        blue_main = "#3B82F6"
+        blue_light = "#60A5FA"
+        blue_dark = "#1D4ED8"
+        pink_soft = "#F472B6"
+        green_soft = "#10B981"
+        orange_soft = "#F59E0B"
+        red_soft = "#EF4444"
+        grid_color = "#E6EEF9"
 
         count_tooltip_callback = """
         tooltip: {
             callbacks: {
-                label: function(tooltipItem) {
-                    let label = tooltipItem.label || '';
-                    let value = tooltipItem.raw || 0;
-                    return ` ${label}: Count ${value}`;
+                label: function(context) {
+                    let label = context.label || '';
+                    let value = context.raw !== undefined ? context.raw : (context.parsed ? context.parsed.y : 0);
+                    return ` ${label}: ${value}`;
                 }
             }
         },
@@ -68,250 +70,264 @@ class Loader:
         gender_labels = list(stats.get("gender_distribution", {}).keys())
         gender_data = list(stats.get("gender_distribution", {}).values())
         gender_script = f"""
-        new Chart(document.getElementById('genderChart'), {{
-            type: 'pie',
-            data: {{
-                labels: {json.dumps(gender_labels)},
-                datasets: [{{
-                    data: {json.dumps(gender_data)},
-                    backgroundColor: ['{color1}', '{color2}', '{color3}'],
-                }}]
-            }},
-            options: {{ 
-                responsive: true, 
-                maintainAspectRatio: true,
-                plugins: {{ {count_tooltip_callback} }}
-            }}
-        }});
+        (function(){{
+            const ctx = document.getElementById('genderChart').getContext('2d');
+            new Chart(ctx, {{
+                type: 'pie',
+                data: {{
+                    labels: {json.dumps(gender_labels)},
+                    datasets: [{{
+                        data: {json.dumps(gender_data)},
+                        backgroundColor: ['{blue_main}', '{pink_soft}'],
+                        borderColor: '#FFFFFF',
+                        borderWidth: 2
+                    }}]
+                }},
+                options: {{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {{ {count_tooltip_callback} legend: {{ position: 'top', align: 'center' }} }},
+                    layout: {{ padding: 8 }}
+                }}
+            }});
+        }})();
         """
 
         age_data = stats.get("age_decade_distribution", {})
         age_labels = sorted(age_data.keys())
         age_values = [age_data[k] for k in age_labels]
         age_script = f"""
-        new Chart(document.getElementById('ageChart'), {{
-            type: 'bar',
-            data: {{
-                labels: {json.dumps(age_labels)},
-                datasets: [{{
-                    label: 'User Count',
-                    data: {json.dumps(age_values)},
-                    backgroundColor: '{color2}',
-                    borderColor: '{color1}',
-                    borderWidth: 1
-                }}]
-            }},
-            options: {{
-                responsive: true,
-                plugins: {{ 
-                    legend: {{ display: false }},
-                    {count_tooltip_callback}
+        (function(){{
+            const ctx = document.getElementById('ageChart').getContext('2d');
+            new Chart(ctx, {{
+                type: 'bar',
+                data: {{
+                    labels: {json.dumps(age_labels)},
+                    datasets: [{{
+                        label: 'Users',
+                        data: {json.dumps(age_values)},
+                        backgroundColor: '{blue_light}',
+                        borderColor: '{blue_main}',
+                        borderWidth: 1
+                    }}]
                 }},
-                scales: {{ y: {{ beginAtZero: true }} }}
-            }}
-        }});
+                options: {{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {{ legend: {{ display: false }}, {count_tooltip_callback} }},
+                    scales: {{
+                        x: {{ grid: {{ display: false }} }},
+                        y: {{
+                            beginAtZero: true,
+                            grid: {{ color: '{grid_color}' }}
+                        }}
+                    }},
+                    layout: {{ padding: 6 }}
+                }}
+            }});
+        }})();
         """
 
         country_data = stats.get("users_per_country", {})
-        top_10_countries = sorted(country_data.items(), key=lambda x: x[1], reverse=True)[:10]
-        country_labels = [c[0] for c in top_10_countries]
-        country_values = [c[1] for c in top_10_countries]
+        top_10 = sorted(country_data.items(), key=lambda x: x[1], reverse=True)[:10]
+        country_labels = [c[0] for c in top_10]
+        country_values = [c[1] for c in top_10]
         country_script = f"""
-        new Chart(document.getElementById('countryChart'), {{
-            type: 'bar',
-            data: {{
-                labels: {json.dumps(country_labels)},
-                datasets: [{{
-                    label: 'User Count',
-                    data: {json.dumps(country_values)},
-                    backgroundColor: '{color1}',
-                }}]
-            }},
-            options: {{
-                indexAxis: 'y',
-                responsive: true,
-                plugins: {{ 
-                    legend: {{ display: false }},
-                    {count_tooltip_callback}
+        (function(){{
+            const ctx = document.getElementById('countryChart').getContext('2d');
+            new Chart(ctx, {{
+                type: 'bar',
+                data: {{
+                    labels: {json.dumps(country_labels)},
+                    datasets: [{{
+                        label: 'User Count',
+                        data: {json.dumps(country_values)},
+                        backgroundColor: '{blue_main}',
+                        borderRadius: 6,
+                        barThickness: 18
+                    }}]
+                }},
+                options: {{
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {{ legend: {{ display: false }}, {count_tooltip_callback} }},
+                    scales: {{
+                        x: {{ grid: {{ color: '{grid_color}' }}, beginAtZero: true }},
+                        y: {{ grid: {{ display: false }} }}
+                    }},
+                    layout: {{ padding: 8 }}
                 }}
-            }}
-        }});
+            }});
+        }})();
         """
 
-        email_data = stats.get("email_domain_distribution", {})
-        top_10_emails = sorted(email_data.items(), key=lambda x: x[1], reverse=True)[:10]
-        email_labels = [e[0] for e in top_10_emails]
-        email_values = [e[1] for e in top_10_emails]
-        email_script = f"""
-        new Chart(document.getElementById('emailChart'), {{
-            type: 'bar',
-            data: {{
-                labels: {json.dumps(email_labels)},
-                datasets: [{{
-                    label: 'Domain Count',
-                    data: {json.dumps(email_values)},
-                    backgroundColor: '{color2}',
-                    borderColor: '{color1}',
-                    borderWidth: 1
-                }}]
-            }},
-            options: {{
-                indexAxis: 'y',
-                responsive: true,
-                plugins: {{ 
-                    legend: {{ display: false }},
-                    {count_tooltip_callback}
-                }}
-            }}
-        }});
-        """
-
+        # --- PASSWORD COMPLEXITY (doughnut) ---
         comp_data = stats.get("password_complexity_stats", {})
         comp_labels = [k.replace("_", " ").title() for k in comp_data.keys()]
         comp_values = list(comp_data.values())
-        comp_total = sum(comp_values) if sum(comp_values) > 0 else 1
-
+        # If there are more labels than colors, Chart.js will cycle the colors — that's OK.
+        complexity_colors = [green_soft, blue_main, orange_soft, red_soft]
+        comp_colors_js = json.dumps(complexity_colors)
         pass_comp_script = f"""
-        new Chart(document.getElementById('passComplexityChart'), {{
-            type: 'doughnut',
-            data: {{
-                labels: {json.dumps(comp_labels)},
-                datasets: [{{
-                    data: {json.dumps(comp_values)},
-                    backgroundColor: ['{color1}', '{color2}', '{color3}', '#A7C7C6'],
-                }}]
-            }},
-            options: {{ 
-                responsive: true, 
-                plugins: {{ 
-                    legend: {{ position: 'top' }},
-                    tooltip: {{
-                        callbacks: {{
-                            label: function(tooltipItem) {{
-                                let label = tooltipItem.label || '';
-                                let rawValue = tooltipItem.raw || 0;
-                                let percentage = (rawValue / {comp_total}) * 100;
-                                return ` ${{label}}: ${{rawValue}} (${{percentage.toFixed(1)}}%)`;
+        (function(){{
+            const ctx = document.getElementById('passComplexityChart').getContext('2d');
+            new Chart(ctx, {{
+                type: 'doughnut',
+                data: {{
+                    labels: {json.dumps(comp_labels)},
+                    datasets: [{{
+                        data: {json.dumps(comp_values)},
+                        backgroundColor: {comp_colors_js},
+                        borderColor: '#FFFFFF',
+                        borderWidth: 2
+                    }}]
+                }},
+                options: {{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {{
+                        legend: {{ position: 'top', labels: {{ boxWidth: 12 }} }},
+                        tooltip: {{
+                            callbacks: {{
+                                label: function(context) {{
+                                    let label = context.label || '';
+                                    let value = context.raw || 0;
+                                    let total = 0;
+                                    context.chart.data.datasets[0].data.forEach(n => total += Number(n || 0));
+                                    let pct = total ? (value / total * 100).toFixed(1) : '0.0';
+                                    return ` ${{label}}: ${{value}} (${{pct}}%)`;
+                                }}
                             }}
                         }}
-                    }}
+                    }},
+                    layout: {{ padding: 6 }}
                 }}
-            }}
-        }});
+            }});
+        }})();
         """
 
         pass_len_data = stats.get("password_length_stats", {}).get("distribution", {})
-        pass_len_sorted = sorted(pass_len_data.items(), key=lambda x: int(x[0]))
+        pass_len_sorted = sorted(pass_len_data.items(), key=lambda x: int(x[0]) if str(x[0]).isdigit() else x[0])
         pass_len_labels = [item[0] for item in pass_len_sorted]
         pass_len_values = [item[1] for item in pass_len_sorted]
-
         pass_len_script = f"""
-        new Chart(document.getElementById('passLengthChart'), {{
-            type: 'bar',
-            data: {{
-                labels: {json.dumps(pass_len_labels)},
-                datasets: [{{
-                    label: 'Password Length Count',
-                    data: {json.dumps(pass_len_values)},
-                    backgroundColor: '{color1}',
-                }}]
-            }},
-            options: {{
-                responsive: true,
-                plugins: {{ 
-                    legend: {{ display: false }},
-                    {count_tooltip_callback}
+        (function(){{
+            const ctx = document.getElementById('passLengthChart').getContext('2d');
+            new Chart(ctx, {{
+                type: 'bar',
+                data: {{
+                    labels: {json.dumps(pass_len_labels)},
+                    datasets: [{{
+                        label: 'Count',
+                        data: {json.dumps(pass_len_values)},
+                        backgroundColor: '{blue_main}',
+                        borderRadius: 4
+                    }}]
                 }},
-                scales: {{ 
-                    x: {{ title: {{ display: true, text: 'Password Length' }} }},
-                    y: {{ beginAtZero: true, title: {{ display: true, text: 'Count' }} }}
+                options: {{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {{ legend: {{ display: false }}, {count_tooltip_callback} }},
+                    scales: {{
+                        x: {{ grid: {{ display: false }} }},
+                        y: {{ beginAtZero: true, grid: {{ color: '{grid_color}' }} }}
+                    }},
+                    layout: {{ padding: 6 }}
                 }}
-            }}
-        }});
+            }});
+        }})();
         """
 
         reg_data = stats.get("registration_by_year", {})
         reg_labels = list(reg_data.keys())
         reg_values = list(reg_data.values())
-
         reg_year_script = f"""
-        new Chart(document.getElementById('regYearChart'), {{
-            type: 'line',
-            data: {{
-                labels: {json.dumps(reg_labels)},
-                datasets: [{{
-                    label: 'Users Registered',
-                    data: {json.dumps(reg_values)},
-                    backgroundColor: '{color2}',
-                    borderColor: '{color1}',
-                    borderWidth: 2,
-                    fill: true
-                }}]
-            }},
-            options: {{
-                responsive: true,
-                plugins: {{ 
-                    legend: {{ display: false }},
-                    {count_tooltip_callback}
+        (function(){{
+            const ctx = document.getElementById('regYearChart').getContext('2d');
+            new Chart(ctx, {{
+                type: 'line',
+                data: {{
+                    labels: {json.dumps(reg_labels)},
+                    datasets: [{{
+                        label: 'Users Registered',
+                        data: {json.dumps(reg_values)},
+                        borderColor: '{blue_main}',
+                        backgroundColor: '{blue_light}',
+                        tension: 0.25,
+                        fill: true,
+                        pointBackgroundColor: '{blue_dark}',
+                        pointBorderColor: '#FFFFFF',
+                        pointRadius: 4,
+                        borderWidth: 2
+                    }}]
                 }},
-                scales: {{ 
-                    x: {{ title: {{ display: true, text: 'Year' }} }},
-                    y: {{ beginAtZero: true, title: {{ display: true, text: 'Count' }} }}
+                options: {{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {{ legend: {{ display: false }}, {count_tooltip_callback} }},
+                    scales: {{
+                        x: {{ grid: {{ display: false }} }},
+                        y: {{ beginAtZero: true, grid: {{ color: '{grid_color}' }} }}
+                    }},
+                    layout: {{ padding: 6 }}
                 }}
-            }}
-        }});
+            }});
+        }})();
         """
 
         tz_data = stats.get("timezone_distribution", {})
         tz_labels = [f"UTC {k}" for k in tz_data.keys()]
         tz_values = list(tz_data.values())
-
         timezone_script = f"""
-        new Chart(document.getElementById('timezoneChart'), {{
-            type: 'bar',
-            data: {{
-                labels: {json.dumps(tz_labels)},
-                datasets: [{{
-                    label: 'Timezone Count',
-                    data: {json.dumps(tz_values)},
-                    backgroundColor: '{color1}',
-                }}]
-            }},
-            options: {{
-                indexAxis: 'y',
-                responsive: true,
-                plugins: {{ 
-                    legend: {{ display: false }},
-                    {count_tooltip_callback}
+        (function(){{
+            const ctx = document.getElementById('timezoneChart').getContext('2d');
+            new Chart(ctx, {{
+                type: 'bar',
+                data: {{
+                    labels: {json.dumps(tz_labels)},
+                    datasets: [{{
+                        label: 'Timezone Count',
+                        data: {json.dumps(tz_values)},
+                        backgroundColor: '{blue_main}',
+                        borderRadius: 6,
+                        barThickness: 14
+                    }}]
+                }},
+                options: {{
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {{ legend: {{ display: false }}, {count_tooltip_callback} }},
+                    scales: {{
+                        x: {{ grid: {{ color: '{grid_color}' }}, beginAtZero: true }},
+                        y: {{ grid: {{ display: false }} }}
+                    }},
+                    layout: {{ padding: 6 }}
                 }}
-            }}
-        }});
+            }});
+        }})();
         """
 
         return f"""
         <script>
-            document.addEventListener("DOMContentLoaded", function() {{
-                try {{
-                    {gender_script}
-                    {age_script}
-                    {country_script}
-                    {email_script}
-                    {pass_comp_script}
-                    {pass_len_script}
-                    {reg_year_script}
-                    {timezone_script}
-                }} catch (e) {{
-                    console.error("Error rendering charts: ", e);
-                }}
-            }});
+        document.addEventListener("DOMContentLoaded", function() {{
+            try {{
+                {gender_script}
+                {age_script}
+                {country_script}
+                {pass_comp_script}
+                {pass_len_script}
+                {reg_year_script}
+                {timezone_script}
+            }} catch (e) {{
+                console.error("Error rendering charts:", e);
+            }}
+        }});
         </script>
         """
 
     def _generate_html_dashboard(self, output_path: Path, stats: dict) -> bool:
-        """
-        Generates an HTML dashboard by populating a template file.
-        Returns True on success, False on failure.
-        """
         try:
             with open(self.template_path, "r", encoding="utf-8") as f:
                 html_content = f.read()
@@ -331,31 +347,53 @@ class Loader:
             html_content = html_content.replace("{{PASSWORD_STRENGTH_SUMMARY}}", f"{strong_percent}% ({strong_count})")
 
             name_stats = stats.get("name_in_password", {})
-            html_content = html_content.replace("{{NAME_IN_PASSWORD}}",f"{name_stats.get('count', 0)} / {name_stats.get('total', 0)}")
+            html_content = html_content.replace("{{NAME_IN_PASSWORD}}", f"{name_stats.get('count', 0)} / {name_stats.get('total', 0)}")
 
             bday_stats = stats.get("birthyear_in_password", {})
-            html_content = html_content.replace("{{BIRTHYEAR_IN_PASSWORD}}",f"{bday_stats.get('count', 0)} / {bday_stats.get('total', 0)}")
+            html_content = html_content.replace("{{BIRTHYEAR_IN_PASSWORD}}", f"{bday_stats.get('count', 0)} / {bday_stats.get('total', 0)}")
 
             user_stats = stats.get("username_in_password", {})
-            html_content = html_content.replace("{{USERNAME_IN_PASSWORD}}",f"{user_stats.get('count', 0)} / {user_stats.get('total', 0)}")
+            html_content = html_content.replace("{{USERNAME_IN_PASSWORD}}", f"{user_stats.get('count', 0)} / {user_stats.get('total', 0)}")
 
             html_content = html_content.replace("{{PASS_LEN_MIN}}", str(pass_len_stats.get("min", "N/A")))
             html_content = html_content.replace("{{PASS_LEN_MAX}}", str(pass_len_stats.get("max", "N/A")))
-            html_content = html_content.replace("{{PASS_LEN_SHORT_PERCENT}}", str(pass_len_stats.get("short_percentage", "N/A")))
 
             html_content = html_content.replace("{{MOST_SECURE_PASSWORD}}", str(stats.get("most_secure_password", "N/A")))
 
             top_pass_list = stats.get("password_pattern_stats", [])
-            top_pass_str = "Rank | Password   | Count\n"
-            top_pass_str += "--------------------------\n"
-            for i, item in enumerate(top_pass_list, 1):
-                top_pass_str += f" {i:<2} | {item['password']:<10} | {item['count']}\n"
-            html_content = html_content.replace("{{TOP_PASSWORDS_TABLE}}", top_pass_str)
+            if top_pass_list:
+                top = top_pass_list[:10]
+                rows = ""
+                for i, item in enumerate(top, 1):
+                    pwd = item.get("password", "")
+                    cnt = item.get("count", 0)
+                    rows += f"""
+                        <tr>
+                            <td class="t-idx">{i}</td>
+                            <td class="t-pwd">{pwd}</td>
+                            <td class="t-count">{cnt}</td>
+                        </tr>
+                    """
+                top_pass_html = f"""
+                    <div class="top-pass-table-wrap">
+                        <table class="top-pass-table">
+                            <thead>
+                                <tr><th>#</th><th>Password</th><th>Count</th></tr>
+                            </thead>
+                            <tbody>
+                                {rows}
+                            </tbody>
+                        </table>
+                    </div>
+                """
+            else:
+                top_pass_html = "<p>No password data available.</p>"
+
+            html_content = html_content.replace("{{TOP_PASSWORDS_TABLE}}", top_pass_html)
 
             html_content = html_content.replace("{{VALID_CSV_PATH}}", "valid_users.csv.enc")
             html_content = html_content.replace("{{INVALID_CSV_PATH}}", "invalid_users.csv.enc")
             html_content = html_content.replace("{{STATS_JSON_PATH}}", "statistics.json")
-            html_content = html_content.replace("{{KEY_PATH}}", "#key-removed")
 
             chart_script = self._create_chart_js_script(stats)
             html_content = html_content.replace("{{CHART_JS_SCRIPT}}", chart_script)

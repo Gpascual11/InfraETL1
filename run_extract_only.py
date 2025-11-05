@@ -1,4 +1,3 @@
-# new file: run_extract_only.py
 import sys
 import argparse
 import os
