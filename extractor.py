@@ -66,7 +66,7 @@ class Extractor:
 
             data = response.json()
             if "results" not in data:
-                raise Exception("Unexpected API response: missing 'results' key.")
+                raise Exception("missing 'results' key.")
 
             users = data["results"]
 
@@ -81,7 +81,7 @@ class Extractor:
             return valid, invalid
 
         except requests.RequestException as e:
-            print(f"\nNetwork error (or timeout): {e}")
+            print(f"\nNetwork error: {e}")
             time.sleep(5)
             return [], []
 

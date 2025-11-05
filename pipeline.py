@@ -21,8 +21,7 @@ class ETLPipeline:
 
         key_str = os.environ.get("ETL_ENCRYPTION_KEY")
         if not key_str:
-            print("Error: ETL_ENCRYPTION_KEY environment variable not set.")
-            print("Please set the variable in your ~/.profile or ~/.bashrc")
+            print("Error: no key found.")
             sys.exit(1)
 
         self.encryption_key = key_str.encode()
@@ -54,7 +53,6 @@ class ETLPipeline:
         stats = transformer.generate_stats()
         users_processed = transformer.get_users()
 
-        print("--- Running Password Audit ---")
         auditor = PasswordAuditor(users_processed)
         password_stats = auditor.generate_all_stats()
 
@@ -68,4 +66,3 @@ class ETLPipeline:
         print("=================================")
         print(f"Total valid users saved: {len(users_processed)}")
         print(f"Output folder: {self.run_dir.resolve()}")
-        print("Dashboard has been automatically opened in your browser.\n")

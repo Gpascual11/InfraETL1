@@ -68,5 +68,3 @@ echo "--- 8. Opening dashboard in your browser... ---"
 xdg-open "$DASHBOARD_URL" > /dev/null 2>&1 || error_exit "Failed to open dashboard. (Is xdg-open installed?)"
 
 echo -e "\n\033[0;32m--- SCRIPT COMPLETED SUCCESSFULLY ---\033[0m"
-echo -e "\n\033[0;33mNOTE: The web server is still running on VM2.\033[0m"
-echo "To stop it, SSH into vm2 and run: 'pkill -f http.server'"

@@ -20,8 +20,7 @@ def main():
 
     key_str = os.environ.get("ETL_ENCRYPTION_KEY")
     if not key_str:
-        print("Error: ETL_ENCRYPTION_KEY environment variable not set.")
-        print("Please log in to the VM and set the variable.")
+        print("Environment variable not set.")
         sys.exit(1)
 
     key = key_str.encode()

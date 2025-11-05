@@ -42,7 +42,7 @@ class CSVHelper:
         """
         csv_path = Path(csv_path)
         if not csv_path.exists():
-            print(f"Warning: CSV file not found: {csv_path}")
+            print(f"CSV file not found: {csv_path}")
             return []
 
         users = []
@@ -71,7 +71,7 @@ class CSVHelper:
         except Exception as e:
             print(f"Error loading CSV {csv_path}: {e}")
             if key:
-                print("This may be due to an incorrect encryption key or corrupted file.")
+                print("Incorrect encryption key")
             return []
 
         return users
@@ -80,7 +80,7 @@ class CSVHelper:
     def save_to_csv(users, invalid_users, output_path=None, key: bytes = None):
         """Saves a list of user dictionaries to an encrypted CSV file."""
         if output_path is None:
-            raise ValueError("You must provide output_path, e.g., run_dir / 'valid_users.csv'")
+            raise ValueError("No output path")
 
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
