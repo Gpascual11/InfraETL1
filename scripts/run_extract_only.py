@@ -1,16 +1,30 @@
 import sys
 import argparse
 import os
-from src.etl.extractor import Extractor
 from datetime import datetime
 from pathlib import Path
+
+# Truco para calcular la ruta correcta sin importar en qué VM estés
+# 1. Obtenemos donde está este script (InfraETL1/scripts)
+CURRENT_SCRIPT_DIR = Path(__file__).resolve().parent
+# 2. Subimos un nivel para ir a la raíz del proyecto (InfraETL1)
+PROJECT_ROOT = CURRENT_SCRIPT_DIR.parent
+
+# AÑADIMOS EL PROYECTO AL PATH DE PYTHON para que encuentre 'src'
+sys.path.append(str(PROJECT_ROOT))
+
+# Ahora sí podemos importar
+from src.etl.extractor import Extractor
 
 
 def main(n_users: int, max_workers: int):
     api_url = "https://randomuser.me/api/"
-    base_output_dir = Path("/output")
+
+    base_output_dir = PROJECT_ROOT / "output"
+
     timestamp = datetime.now().strftime("%Y_%m_%d_%H-%M-%S")
     run_dir = base_output_dir / timestamp
+
     run_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"--- Running Extraction ---")
@@ -18,7 +32,7 @@ def main(n_users: int, max_workers: int):
 
     key_str = os.environ.get("ETL_ENCRYPTION_KEY")
     if not key_str:
-        print("Environment variable not set.")
+        print("Error: Environment variable ETL_ENCRYPTION_KEY not set.")
         sys.exit(1)
 
     encryption_key = key_str.encode()

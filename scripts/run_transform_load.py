@@ -1,26 +1,37 @@
 import sys
 import os
 from pathlib import Path
+
+CURRENT_SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = CURRENT_SCRIPT_DIR.parent
+sys.path.append(str(PROJECT_ROOT))
+
 from src.etl.transformer import Transformer
 from src.utils.passwordauditor import PasswordAuditor
 from src.etl.loader import Loader
+
 
 def main():
     if len(sys.argv) != 2:
         print("Usage: python run_transform_load.py <path_to_run_directory>")
         sys.exit(1)
 
-    run_dir = Path(sys.argv[1])
+    relative_run_path = sys.argv[1]
+
+    run_dir = PROJECT_ROOT / relative_run_path
+
     csv_path = run_dir / "valid_users.csv.enc"
 
     if not csv_path.exists():
-        print(f"Error: Encrypted CSV not found in {run_dir}")
-        print(f"Looked for: {csv_path.resolve()}")
+        print(f"Error: Encrypted CSV not found.")
+        print(f"Looked in: {csv_path.resolve()}")
+        if run_dir.exists():
+            print(f"Contents of {run_dir.name}: {[p.name for p in run_dir.glob('*')]}")
         sys.exit(1)
 
     key_str = os.environ.get("ETL_ENCRYPTION_KEY")
     if not key_str:
-        print("Environment variable not set.")
+        print("Environment variable ETL_ENCRYPTION_KEY not set.")
         sys.exit(1)
 
     key = key_str.encode()
@@ -43,6 +54,7 @@ def main():
     loader.save_stats_and_dashboard(users_processed, stats)
 
     print("--- T&L Complete ---")
+
 
 if __name__ == "__main__":
     main()
