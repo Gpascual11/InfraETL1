@@ -15,7 +15,7 @@ error_exit() {
 
 echo "--- 1. Updating Repositories on VMs ---"
 ssh $VM1_HOST "cd $PROJECT_DIR && git pull" || error_exit "Failed to pull updates on VM1."
-ssh $VM2_HOST "cd $PROJECT_DIR && git pull" || error_exit "Failed to pull updates on VM2 (Did you 'git push' the loader.py change?)"
+ssh $VM2_HOST "cd $PROJECT_DIR && git pull" || error_exit "Failed to pull updates on VM2."
 
 echo "--- 2. Get Number of Users ---"
 while true; do
@@ -33,10 +33,13 @@ ssh $VM1_HOST "cd $PROJECT_DIR && source ~/.profile && source venv/bin/activate 
     || error_exit "Extraction script failed on VM1."
 
 echo "--- 4. Finding latest run directory on VM1 ---"
-LATEST_RUN_DIR=$(ssh $VM1_HOST "ls -td $PROJECT_DIR/src/etl/output/*/ | head -1")
+LATEST_RUN_DIR=$(ssh $VM1_HOST "ls -td $PROJECT_DIR/output/*/ | head -1")
+
 if [ -z "$LATEST_RUN_DIR" ]; then
-    error_exit "Could not find any output directory on VM1."
+    error_exit "Could not find any output directory on VM1 inside $PROJECT_DIR/output."
 fi
+
+# Limpiamos barras al final por si acaso
 LATEST_RUN_DIR=$(echo $LATEST_RUN_DIR | sed 's:/*$::')
 echo "Found: $LATEST_RUN_DIR"
 
@@ -48,6 +51,7 @@ echo "Transfer complete."
 echo "--- 6. Running Transform & Load on VM2 ---"
 RUN_DIR_NAME=$(basename $LATEST_RUN_DIR)
 VM2_RUN_PATH="output/$RUN_DIR_NAME"
+
 ssh $VM2_HOST "cd $PROJECT_DIR && source ~/.profile && source venv/bin/activate && export PYTHONPATH=. && python3 scripts/run_transform_load.py $VM2_RUN_PATH" \
     || error_exit "Transform & Load script failed on VM2."
 
@@ -55,7 +59,8 @@ echo "--- 7. Starting web server on VM2 ---"
 
 ssh $VM2_HOST "fuser -k 8000/tcp || true"
 
-ssh -f $VM2_HOST "cd $PROJECT_DIR/$VM2_RUN_PATH && nohup python3 -m http.server 8000 > /dev/null 2>&1 &" \ || error_exit "Failed to start HTTP server on VM2."
+ssh -f $VM2_HOST "cd $PROJECT_DIR/$VM2_RUN_PATH && nohup python3 -m http.server 8000 > /dev/null 2>&1 &" \
+    || error_exit "Failed to start HTTP server on VM2."
 
 VM2_IP=$(echo $VM2_HOST | cut -d'@' -f2)
 DASHBOARD_URL="http://$VM2_IP:8000/dashboard.html"
@@ -65,6 +70,6 @@ echo -e "\nDashboard is now being served from VM2."
 echo -e "Access it here: \033[0;32m$DASHBOARD_URL\033[0m"
 
 echo "--- 8. Opening dashboard in your browser... ---"
-xdg-open "$DASHBOARD_URL" > /dev/null 2>&1 || error_exit "Failed to open dashboard. (Is xdg-open installed?)"
+xdg-open "$DASHBOARD_URL" > /dev/null 2>&1 || echo "Could not open browser automatically. Please copy the URL above."
 
 echo -e "\n\033[0;32m--- SCRIPT COMPLETED SUCCESSFULLY ---\033[0m"
