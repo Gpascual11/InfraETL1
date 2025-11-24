@@ -253,7 +253,7 @@
             </div>
         </div>
 
-        <div id="Connect" class="tab-content">
+        <div id="Connect" class="tab-content" style="display:none;">
         <div class="connect-box">
             <h3>1. Scan to view on Mobile</h3>
             <div id="qrcode"></div> <hr style="width:100%; border:0; border-top:1px solid #eee; margin: 20px 0;">
@@ -283,13 +283,11 @@
             evt.currentTarget.style.color='var(--accent)';
         }
 
-        // 2. QR CODE AUTOMATICO (Coge la IP/URL del navegador)
         new QRCode(document.getElementById("qrcode"), {
             text: window.location.href,
             width: 150, height: 150
         });
 
-        // 4. GUARDAR EN RDS (Llamada al backend Python)
         async function sendToDB() {
             const pass = document.getElementById('secretPass').value;
             const msg = document.getElementById('msg');
@@ -299,7 +297,6 @@
             msg.innerText = "Sending...";
 
             try {
-                // Enviamos los datos a la ruta /add_data de nuestro script Python
                 let res = await fetch('/add_data', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -310,6 +307,9 @@
                 if(data.status === 'ok') {
                     msg.style.color = 'green';
                     msg.innerText = "✅ Saved to RDS successfully!";
+
+                    document.getElementById('secretPass').value = "";
+
                 } else {
                     throw new Error(data.error);
                 }
