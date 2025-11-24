@@ -1,7 +1,7 @@
 import statistics
 from collections import Counter, defaultdict
-from CSVHelper import CSVHelper
-from validator import Validator
+from src.utils.csv_helper import CSVHelper
+from src.utils.validator import Validator
 from pathlib import Path
 from datetime import datetime
 

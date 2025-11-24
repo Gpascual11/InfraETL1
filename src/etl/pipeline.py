@@ -2,7 +2,7 @@ import os
 import sys
 from extractor import Extractor
 from transformer import Transformer
-from passwordauditor import PasswordAuditor
+from src.utils.passwordauditor import PasswordAuditor
 from loader import Loader
 from datetime import datetime
 from pathlib import Path

@@ -1,9 +1,9 @@
 import sys
 import os
 from pathlib import Path
-from transformer import Transformer
-from passwordauditor import PasswordAuditor
-from loader import Loader
+from src.etl.transformer import Transformer
+from src.utils.passwordauditor import PasswordAuditor
+from src.etl.loader import Loader
 
 def main():
     if len(sys.argv) != 2:

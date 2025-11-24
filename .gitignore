@@ -1,0 +1,10 @@
+*.xml
+*.iml
+output/
+*.pyc
+__pycache__/
+venv/
+.env
+.idea/
+.DS_Store
+*.pem

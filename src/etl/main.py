@@ -1,4 +1,4 @@
-from pipeline import ETLPipeline
+from src.etl.pipeline import ETLPipeline
 
 def main():
     api_url = "https://randomuser.me/api/"

@@ -1,14 +1,14 @@
 import sys
 import argparse
 import os
-from extractor import Extractor
+from src.etl.extractor import Extractor
 from datetime import datetime
 from pathlib import Path
 
 
 def main(n_users: int, max_workers: int):
     api_url = "https://randomuser.me/api/"
-    base_output_dir = Path("output")
+    base_output_dir = Path("/output")
     timestamp = datetime.now().strftime("%Y_%m_%d_%H-%M-%S")
     run_dir = base_output_dir / timestamp
     run_dir.mkdir(parents=True, exist_ok=True)

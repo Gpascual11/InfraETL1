@@ -13,7 +13,7 @@ class Loader:
         self.source = source
         self.output_dir = output_dir
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        self.template_path = Path(__file__).parent / "templates" / "dashboard_template.html"
+        self.template_path = Path(__file__).parent / ".." / "web" / "templates" / "dashboard_template.html"
 
     def save_stats_and_dashboard(self, users_processed: list, stats: dict):
         """Save statistics to JSON and generate HTML dashboard."""

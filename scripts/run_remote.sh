@@ -29,11 +29,11 @@ done
 
 echo "--- 3. Running Extraction on VM1 ---"
 echo "Starting extraction for $N_USERS users..."
-ssh $VM1_HOST "cd $PROJECT_DIR && source ~/.profile && source venv/bin/activate && python3 run_extract_only.py $N_USERS" \
+ssh $VM1_HOST "cd $PROJECT_DIR && source ~/.profile && source venv/bin/activate && python3 scripts/run_extract_only.py $N_USERS" \
     || error_exit "Extraction script failed on VM1."
 
 echo "--- 4. Finding latest run directory on VM1 ---"
-LATEST_RUN_DIR=$(ssh $VM1_HOST "ls -td $PROJECT_DIR/output/*/ | head -1")
+LATEST_RUN_DIR=$(ssh $VM1_HOST "ls -td $PROJECT_DIR/src/etl/output/*/ | head -1")
 if [ -z "$LATEST_RUN_DIR" ]; then
     error_exit "Could not find any output directory on VM1."
 fi
@@ -41,14 +41,14 @@ LATEST_RUN_DIR=$(echo $LATEST_RUN_DIR | sed 's:/*$::')
 echo "Found: $LATEST_RUN_DIR"
 
 echo "--- 5. Transferring data directly from VM1 -> VM2 ---"
-ssh $VM2_HOST "mkdir -p $PROJECT_DIR/output && scp -r $VM1_HOST:$LATEST_RUN_DIR $PROJECT_DIR/output/" \
+ssh $VM2_HOST "mkdir -p $PROJECT_DIR/src/etl/output && scp -r $VM1_HOST:$LATEST_RUN_DIR $PROJECT_DIR/src/etl/output/" \
     || error_exit "Failed to copy files directly from VM1 to VM2."
 echo "Transfer complete."
 
 echo "--- 6. Running Transform & Load on VM2 ---"
 RUN_DIR_NAME=$(basename $LATEST_RUN_DIR)
 VM2_RUN_PATH="output/$RUN_DIR_NAME"
-ssh $VM2_HOST "cd $PROJECT_DIR && source ~/.profile && source venv/bin/activate && python3 run_transform_load.py $VM2_RUN_PATH" \
+ssh $VM2_HOST "cd $PROJECT_DIR && source ~/.profile && source venv/bin/activate && python3 scripts/run_transform_load.py $VM2_RUN_PATH" \
     || error_exit "Transform & Load script failed on VM2."
 
 echo "--- 7. Starting web server on VM2 ---"

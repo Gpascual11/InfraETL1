@@ -2,8 +2,8 @@ import requests
 import time
 import sys
 from pathlib import Path
-from validator import Validator
-from CSVHelper import CSVHelper
+from src.utils.validator import Validator
+from src.utils.csv_helper import CSVHelper
 import concurrent.futures
 
 def _print_progress(current: int, total: int, bar_length: int = 40):
@@ -38,7 +38,7 @@ class Extractor:
         self.invalid_users = []
         self.validator = Validator()
         self.nationalities = self.EU_NATS + self.LATAM_NATS
-        self.run_dir = Path(output_dir) if output_dir else Path("output")
+        self.run_dir = Path(output_dir) if output_dir else Path("../../output")
         self.run_dir.mkdir(parents=True, exist_ok=True)
 
     def _build_url(self) -> str:
