@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>ETL Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root{
             --bg:#F4F5F7;
@@ -129,6 +131,12 @@
         .top-pass-table .t-pwd{ font-family:monospace; max-width:320px; word-break:break-all; color:#173347 }
         .top-pass-table .t-count{ text-align:center; color:var(--muted) }
 
+        /* ESTILOS TAB CONNECT */
+        .connect-box { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        .input-group { display: flex; gap: 10px; }
+        input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 200px; }
+        #msg { margin-top: 10px; font-weight: bold; }
+
         .muted{ color:var(--muted); font-size:0.9rem }
         .footer{ text-align:center; color:var(--muted); margin-top:18px; font-size:0.9rem }
 
@@ -146,6 +154,7 @@
             <button class="tablinks" onclick="openTab(event,'General')" id="defaultOpen" style="padding:10px 14px;border-radius:8px;border:1px solid var(--divider);background:#fff;cursor:pointer;font-weight:600;color:var(--muted)">General Stats</button>
             <button class="tablinks" onclick="openTab(event,'Password')" style="padding:10px 14px;border-radius:8px;border:1px solid var(--divider);background:#fff;cursor:pointer;font-weight:600;color:var(--muted)">Password Analysis</button>
             <button class="tablinks" onclick="openTab(event,'Downloads')" style="padding:10px 14px;border-radius:8px;border:1px solid var(--divider);background:#fff;cursor:pointer;font-weight:600;color:var(--muted)">File Downloads</button>
+            <button onclick="openTab('Connect', this)">Connect & DB</button>
         </div>
 
         <div id="General" class="tabcontent" style="display:none;">
@@ -244,6 +253,20 @@
             </div>
         </div>
 
+        <div id="Connect" class="tab-content">
+        <div class="connect-box">
+            <h3>1. Scan to view on Mobile</h3>
+            <div id="qrcode"></div> <hr style="width:100%; border:0; border-top:1px solid #eee; margin: 20px 0;">
+
+            <h3>2. Insert into RDS Database</h3>
+            <div class="input-group">
+                <input type="text" id="secretPass" placeholder="Enter random password">
+                <button onclick="sendToDB()" style="background:#10B981; color:white;">Save to AWS RDS</button>
+            </div>
+            <div id="msg"></div>
+        </div>
+    </div>
+
         <div class="footer">ETL Dashboard generated on {{TIMESTAMP}}</div>
     </div>
 
@@ -258,6 +281,42 @@
             evt.currentTarget.classList.add("active");
             evt.currentTarget.style.borderColor='var(--accent)';
             evt.currentTarget.style.color='var(--accent)';
+        }
+
+        // 2. QR CODE AUTOMATICO (Coge la IP/URL del navegador)
+        new QRCode(document.getElementById("qrcode"), {
+            text: window.location.href,
+            width: 150, height: 150
+        });
+
+        // 4. GUARDAR EN RDS (Llamada al backend Python)
+        async function sendToDB() {
+            const pass = document.getElementById('secretPass').value;
+            const msg = document.getElementById('msg');
+
+            if(!pass) return alert("Escribe algo!");
+
+            msg.innerText = "Sending...";
+
+            try {
+                // Enviamos los datos a la ruta /add_data de nuestro script Python
+                let res = await fetch('/add_data', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ password: pass })
+                });
+                let data = await res.json();
+
+                if(data.status === 'ok') {
+                    msg.style.color = 'green';
+                    msg.innerText = "✅ Saved to RDS successfully!";
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (e) {
+                msg.style.color = 'red';
+                msg.innerText = "❌ Error: " + e.message;
+            }
         }
 
         document.addEventListener("DOMContentLoaded", function(){
