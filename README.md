@@ -144,7 +144,7 @@ pip install flask pandas psycopg2-binary faker requests cryptography
 Set the encryption key persistently in the EC2 instance (run once):
 
 ```bash
-echo 'export ETL_ENCRYPTION_KEY="_xERQLzrYUJPTxcYbVT9y0OjSMlczaW1meXCc4rLw7g="' >> ~/.bashrc
+echo 'export ETL_ENCRYPTION_KEY="PASTE_YOUR_44_CHARACTER_FERNET_KEY_HERE="' >> ~/.bashrc
 source ~/.bashrc
 ```
 
